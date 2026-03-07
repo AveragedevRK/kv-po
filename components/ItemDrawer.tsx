@@ -175,77 +175,77 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white dark:bg-gray-850 shadow-2xl z-50 transform transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[380px] md:w-[420px] bg-white dark:bg-gray-850 shadow-2xl z-50 transform transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Package size={20} />
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Package size={18} className="sm:w-5 sm:h-5" />
             Item Details
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
           >
-            <X size={20} className="text-gray-500 dark:text-gray-400" />
+            <X size={18} className="sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto h-[calc(100%-64px)]">
+        <div className="p-3 sm:p-4 overflow-y-auto h-[calc(100%-52px)] sm:h-[calc(100%-64px)]">
           {/* SKU Header */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{item.sku}</h3>
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+          <div className="mb-4 sm:mb-6">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 break-all">{item.sku}</h3>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(item.category)}`}>
                 {getCategoryLabel(item.category)}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(item.status)}`}>
                 {item.status}
               </span>
             </div>
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <Tag size={14} />
-                <span className="text-xs font-medium">Account</span>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="p-2.5 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
+                <Tag size={12} className="sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:text-xs font-medium">Account</span>
               </div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.account}</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white truncate">{item.account}</p>
             </div>
 
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <Layers size={14} />
-                <span className="text-xs font-medium">Units</span>
+            <div className="p-2.5 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
+                <Layers size={12} className="sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:text-xs font-medium">Units</span>
               </div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.units}</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{item.units}</p>
             </div>
 
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <Clock size={14} />
-                <span className="text-xs font-medium">Turnover Days</span>
+            <div className="p-2.5 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
+                <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:text-xs font-medium">Turnover</span>
               </div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.turnover} days</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{item.turnover} days</p>
             </div>
 
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <DollarSign size={14} />
-                <span className="text-xs font-medium">Investment</span>
+            <div className="p-2.5 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
+                <DollarSign size={12} className="sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:text-xs font-medium">Investment</span>
               </div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">${item.investment.toLocaleString()}</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">${item.investment.toLocaleString()}</p>
             </div>
 
-            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 col-span-2">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <TrendingUp size={14} />
-                <span className="text-xs font-medium">Profit</span>
+            <div className="p-2.5 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-800 col-span-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
+                <TrendingUp size={12} className="sm:w-3.5 sm:h-3.5" />
+                <span className="text-[10px] sm:text-xs font-medium">Profit</span>
               </div>
-              <p className={`text-lg font-bold ${item.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+              <p className={`text-base sm:text-lg font-bold ${item.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                 ${item.profit.toLocaleString()}
               </p>
             </div>
@@ -253,38 +253,38 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
 
           {/* Order Details Section */}
           {localOrderDetails && (
-            <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <FileText size={16} />
+            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
+                  <FileText size={14} className="sm:w-4 sm:h-4" />
                   Order Details
                 </h4>
                 {canSave && (
                   <button
                     onClick={handleSaveOrderDetails}
                     disabled={isSavingOrder}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
                       bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 
                       dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30
                       disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSavingOrder ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                    {isSavingOrder ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : <Save size={10} className="sm:w-3 sm:h-3" />}
                     Save
                   </button>
                 )}
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 {/* Order ID - Only ADMIN can see and edit */}
                 {canViewOrderId && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</label>
                     <input
                       type="text"
                       value={localOrderDetails.orderId}
                       onChange={(e) => handleOrderDetailsChange('orderId', e.target.value)}
                       disabled={!canEditAdminFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                 )}
@@ -292,8 +292,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                 {/* Supplier - Only ADMIN can see and edit */}
                 {canViewSupplier && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                      <Truck size={12} />
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                      <Truck size={10} className="sm:w-3 sm:h-3" />
                       Supplier
                     </label>
                     <input
@@ -301,59 +301,59 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                       value={localOrderDetails.supplier}
                       onChange={(e) => handleOrderDetailsChange('supplier', e.target.value)}
                       disabled={!canEditAdminFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                 )}
 
                 {/* Number Fields Grid - VIEW/EDIT/ADMIN can see, EDIT/ADMIN can edit (EDIT = UI only) */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Subtotal</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Subtotal</label>
                     <input
                       type="number"
                       value={localOrderDetails.subtotal}
                       onChange={(e) => handleOrderDetailsChange('subtotal', e.target.value)}
                       disabled={!canEditNumericFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Misc</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Misc</label>
                     <input
                       type="number"
                       value={localOrderDetails.misc}
                       onChange={(e) => handleOrderDetailsChange('misc', e.target.value)}
                       disabled={!canEditNumericFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total</label>
                     <input
                       type="number"
                       value={localOrderDetails.total}
                       onChange={(e) => handleOrderDetailsChange('total', e.target.value)}
                       disabled={!canEditNumericFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Units</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Units</label>
                     <input
                       type="number"
                       value={localOrderDetails.units}
                       onChange={(e) => handleOrderDetailsChange('units', e.target.value)}
                       disabled={!canEditNumericFields}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                 </div>
 
                 {/* Edit Mode Warning */}
                 {canEditNumericFields && !canSave && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                    Changes in EDIT mode are not saved to the database.
+                  <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 italic">
+                    Changes in EDIT mode are not saved.
                   </p>
                 )}
               </div>
@@ -362,43 +362,43 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
 
           {/* Status Controls - Only ADMIN can change status */}
           {canSave && (
-            <div className="mb-6">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Update Status</h4>
+            <div className="mb-4 sm:mb-6">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Update Status</h4>
               {item.status === 'Awaiting Payment' ? (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <button
                     onClick={() => handleStatusChange('Partially Processed')}
                     disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-2 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
                       bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 
                       dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/30
                       disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isUpdating ? <Loader2 size={12} className="animate-spin" /> : 'Partial'}
+                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Partial'}
                   </button>
                   <button
                     onClick={() => handleStatusChange('Processed')}
                     disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-2 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
                       bg-green-50 border-green-200 text-green-700 hover:bg-green-100 
                       dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30
                       disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isUpdating ? <Loader2 size={12} className="animate-spin" /> : 'Processed'}
+                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Done'}
                   </button>
                   <button
                     onClick={() => handleStatusChange('Excluded')}
                     disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-2 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
                       bg-red-50 border-red-200 text-red-700 hover:bg-red-100 
                       dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30
                       disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isUpdating ? <Loader2 size={12} className="animate-spin" /> : 'Excluded'}
+                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Skip'}
                   </button>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
                   Status cannot be changed once set to {item.status}.
                 </p>
               )}
