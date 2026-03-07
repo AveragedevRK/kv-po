@@ -1,7 +1,7 @@
 import { db, storage } from './firebase';
 import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
-import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus, OrderDetails, AccessMode } from '../types';
+import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus, OrderEntry, AccessMode } from '../types';
 
 // PO ID constant for now
 const DEFAULT_PO_ID = 'PO-2026-001';
@@ -17,7 +17,10 @@ interface FirestoreItem {
   profit: number;
   units: number;
   status: string;
-  // Order details fields
+  asin?: string;
+  // Orders array (new structure)
+  orders?: OrderEntry[];
+  // Legacy single order fields (for migration)
   orderId?: string;
   supplier?: string;
   subtotal?: number;
@@ -115,15 +118,22 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
   const items: SkuDataWithId[] = itemsSnapshot.docs.map((docSnapshot) => {
     const data = docSnapshot.data() as FirestoreItem & { invoices?: string[] };
     
-    // Always initialize order details with values from Firestore or defaults
-    const orderDetails: OrderDetails = {
-      orderId: data.orderId || '',
-      supplier: data.supplier || '',
-      subtotal: data.subtotal || 0,
-      misc: data.misc || 0,
-      total: data.total || 0,
-      units: data.units || 0,
-    };
+    // Handle orders array - support both new structure and legacy single order
+    let orders: OrderEntry[] = [];
+    if (data.orders && Array.isArray(data.orders) && data.orders.length > 0) {
+      // New structure: use orders array directly
+      orders = data.orders;
+    } else if (data.orderId || data.supplier || data.subtotal || data.misc || data.total) {
+      // Legacy structure: convert single order to array
+      orders = [{
+        orderId: data.orderId || '',
+        supplier: data.supplier || '',
+        subtotal: data.subtotal || 0,
+        misc: data.misc || 0,
+        total: data.total || 0,
+        units: data.units || 0,
+      }];
+    }
     
     return {
       id: docSnapshot.id,
@@ -135,8 +145,9 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
       profit: data.profit,
       units: data.units,
       status: data.status,
+      asin: data.asin,
       invoices: data.invoices || [],
-      orderDetails,
+      orders,
     };
   });
 
@@ -303,11 +314,11 @@ export async function validateAccessCode(pin: string): Promise<AccessMode | null
   }
 }
 
-// Update order details for an item (ADMIN only)
-export async function updateOrderDetails(
+// Update orders array for an item (ADMIN only)
+export async function updateItemOrders(
   poId: string,
   itemId: string,
-  orderDetails: OrderDetails,
+  orders: OrderEntry[],
   accessMode: AccessMode
 ): Promise<boolean> {
   // Only ADMIN can write to Firestore
@@ -318,16 +329,11 @@ export async function updateOrderDetails(
   try {
     const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
     await updateDoc(itemDocRef, {
-      orderId: orderDetails.orderId,
-      supplier: orderDetails.supplier,
-      subtotal: orderDetails.subtotal,
-      misc: orderDetails.misc,
-      total: orderDetails.total,
-      units: orderDetails.units,
+      orders: orders,
     });
     return true;
   } catch (error) {
-    console.error('Error updating order details:', error);
+    console.error('Error updating orders:', error);
     return false;
   }
 }

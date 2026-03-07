@@ -38,12 +38,13 @@ export type ItemStatus = 'Awaiting Payment' | 'Partially Processed' | 'Processed
 export interface SkuDataWithId extends SkuData {
   id: string;
   units: number;
+  asin?: string; // ASIN - only visible to ADMIN, not editable
   invoices?: string[];
-  orderDetails?: OrderDetails;
+  orders: OrderEntry[]; // Multiple orders per item
 }
 
-// Order Details for items
-export interface OrderDetails {
+// Order entry for items (multiple orders per item)
+export interface OrderEntry {
   orderId: string;
   supplier: string;
   subtotal: number;

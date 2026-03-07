@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Save, Truck } from 'lucide-react';
-import { SkuDataWithId, SkuCategory, ItemStatus, OrderDetails } from '../types';
-import { updateItemStatus, updateOrderDetails } from '../lib/loadPurchaseOrder';
+import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Save, Truck, Pencil, Plus, Trash2, Check, XCircle } from 'lucide-react';
+import { SkuDataWithId, SkuCategory, ItemStatus, OrderEntry } from '../types';
+import { updateItemStatus, updateItemOrders } from '../lib/loadPurchaseOrder';
 import InvoiceSection from './InvoiceSection';
 import { useAccess } from '../context/AccessContext';
 
@@ -13,32 +13,227 @@ interface ItemDrawerProps {
   onItemUpdated: () => void;
 }
 
+// Single Order Card Component
+interface OrderCardProps {
+  order: OrderEntry;
+  index: number;
+  isEditing: boolean;
+  editingOrder: OrderEntry | null;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: () => void;
+  onDelete: () => void;
+  onFieldChange: (field: keyof OrderEntry, value: string | number) => void;
+  canEditAdminFields: boolean;
+  canEditNumericFields: boolean;
+  canSave: boolean;
+  isSaving: boolean;
+}
+
+const OrderCard: React.FC<OrderCardProps> = ({
+  order,
+  index,
+  isEditing,
+  editingOrder,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onDelete,
+  onFieldChange,
+  canEditAdminFields,
+  canEditNumericFields,
+  canSave,
+  isSaving,
+}) => {
+  const displayOrder = isEditing && editingOrder ? editingOrder : order;
+
+  return (
+    <div className={`p-3 sm:p-4 rounded-lg border transition-all duration-200 ${
+      isEditing 
+        ? 'border-brand-300 dark:border-brand-700 bg-brand-50/50 dark:bg-brand-900/20' 
+        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+    }`}>
+      {/* Order Header */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          Order #{index + 1}
+        </span>
+        <div className="flex items-center gap-1">
+          {isEditing ? (
+            <>
+              <button
+                onClick={onSaveEdit}
+                disabled={isSaving}
+                className="p-1 sm:p-1.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors disabled:opacity-50"
+                title="Save changes"
+              >
+                {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              </button>
+              <button
+                onClick={onCancelEdit}
+                className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title="Cancel"
+              >
+                <XCircle size={12} />
+              </button>
+            </>
+          ) : (
+            <>
+              {(canEditAdminFields || canEditNumericFields) && (
+                <button
+                  onClick={onStartEdit}
+                  className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-brand-100 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  title="Edit order"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
+              {canSave && (
+                <button
+                  onClick={onDelete}
+                  className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  title="Delete order"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Order Fields */}
+      <div className="space-y-2">
+        {/* Order ID - ADMIN only */}
+        {canEditAdminFields && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Order ID</span>
+            {isEditing ? (
+              <input
+                type="text"
+                value={displayOrder.orderId}
+                onChange={(e) => onFieldChange('orderId', e.target.value)}
+                className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.orderId || '-'}</span>
+            )}
+          </div>
+        )}
+
+        {/* Supplier - ADMIN only */}
+        {canEditAdminFields && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0 flex items-center gap-1">
+              <Truck size={10} /> Supplier
+            </span>
+            {isEditing ? (
+              <input
+                type="text"
+                value={displayOrder.supplier}
+                onChange={(e) => onFieldChange('supplier', e.target.value)}
+                className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.supplier || '-'}</span>
+            )}
+          </div>
+        )}
+
+        {/* Numeric Fields Grid */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* Subtotal */}
+          <div>
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Subtotal</span>
+            {isEditing && canEditNumericFields ? (
+              <input
+                type="number"
+                value={displayOrder.subtotal}
+                onChange={(e) => onFieldChange('subtotal', e.target.value)}
+                className="w-full px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">${displayOrder.subtotal.toLocaleString()}</span>
+            )}
+          </div>
+
+          {/* Misc */}
+          <div>
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Misc</span>
+            {isEditing && canEditNumericFields ? (
+              <input
+                type="number"
+                value={displayOrder.misc}
+                onChange={(e) => onFieldChange('misc', e.target.value)}
+                className="w-full px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">${displayOrder.misc.toLocaleString()}</span>
+            )}
+          </div>
+
+          {/* Total */}
+          <div>
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Total</span>
+            {isEditing && canEditNumericFields ? (
+              <input
+                type="number"
+                value={displayOrder.total}
+                onChange={(e) => onFieldChange('total', e.target.value)}
+                className="w-full px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">${displayOrder.total.toLocaleString()}</span>
+            )}
+          </div>
+
+          {/* Units */}
+          <div>
+            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Units</span>
+            {isEditing && canEditNumericFields ? (
+              <input
+                type="number"
+                value={displayOrder.units}
+                onChange={(e) => onFieldChange('units', e.target.value)}
+                className="w-full px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.units.toLocaleString()}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Mode Warning for non-ADMIN */}
+      {isEditing && canEditNumericFields && !canSave && (
+        <p className="mt-2 text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 italic">
+          Changes in EDIT mode are not saved.
+        </p>
+      )}
+    </div>
+  );
+};
+
 const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, onItemUpdated }) => {
   const drawerRef = useRef<HTMLDivElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const { accessMode, canEditAdminFields, canEditNumericFields, canSave, canViewOrderId, canViewSupplier, canViewInvoices } = useAccess();
+  const [isSavingOrders, setIsSavingOrders] = useState(false);
+  const { accessMode, canEditAdminFields, canEditNumericFields, canSave, canViewSupplier, canViewInvoices } = useAccess();
   
-  // Local state for order details editing (EDIT mode changes stay local, not saved)
-  const [localOrderDetails, setLocalOrderDetails] = useState<OrderDetails | null>(null);
+  // Local state for orders editing
+  const [localOrders, setLocalOrders] = useState<OrderEntry[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderEntry | null>(null);
   
-  // Reset local order details when item changes - always initialize with defaults
+  // Reset local orders when item changes
   useEffect(() => {
-    if (item?.orderDetails) {
-      setLocalOrderDetails({ ...item.orderDetails });
-    } else if (item) {
-      // Initialize with defaults if no order details exist
-      setLocalOrderDetails({
-        orderId: '',
-        supplier: '',
-        subtotal: 0,
-        misc: 0,
-        total: 0,
-        units: 0,
-      });
+    if (item) {
+      setLocalOrders([...item.orders]);
     } else {
-      setLocalOrderDetails(null);
+      setLocalOrders([]);
     }
+    setEditingIndex(null);
+    setEditingOrder(null);
   }, [item]);
 
   // Close on outside click
@@ -51,7 +246,6 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      // Prevent body scroll when drawer is open
       document.body.style.overflow = 'hidden';
     }
 
@@ -65,7 +259,12 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        if (editingIndex !== null) {
+          setEditingIndex(null);
+          setEditingOrder(null);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -76,12 +275,10 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, editingIndex]);
 
   const handleStatusChange = async (newStatus: ItemStatus) => {
     if (!item || item.status !== 'Awaiting Payment') return;
-    
-    // Only ADMIN can actually update status in Firestore
     if (!canSave) return;
     
     setIsUpdating(true);
@@ -97,28 +294,99 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     }
   };
 
-  const handleOrderDetailsChange = (field: keyof OrderDetails, value: string | number) => {
-    if (!localOrderDetails) return;
-    
-    setLocalOrderDetails({
-      ...localOrderDetails,
+  const handleStartEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditingOrder({ ...localOrders[index] });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditingOrder(null);
+  };
+
+  const handleFieldChange = (field: keyof OrderEntry, value: string | number) => {
+    if (!editingOrder) return;
+    setEditingOrder({
+      ...editingOrder,
       [field]: field === 'orderId' || field === 'supplier' ? value : Number(value) || 0,
     });
   };
 
-  const handleSaveOrderDetails = async () => {
-    if (!item || !localOrderDetails || !canSave) return;
+  const handleSaveEdit = async () => {
+    if (editingIndex === null || !editingOrder || !item) return;
+
+    const newOrders = [...localOrders];
+    newOrders[editingIndex] = editingOrder;
     
-    setIsSavingOrder(true);
+    if (canSave) {
+      setIsSavingOrders(true);
+      try {
+        const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
+        if (success) {
+          setLocalOrders(newOrders);
+          onItemUpdated();
+        }
+      } catch (error) {
+        console.error('Error saving order:', error);
+      } finally {
+        setIsSavingOrders(false);
+      }
+    } else {
+      // EDIT mode: only update local state
+      setLocalOrders(newOrders);
+    }
+    
+    setEditingIndex(null);
+    setEditingOrder(null);
+  };
+
+  const handleDeleteOrder = async (index: number) => {
+    if (!item || !canSave) return;
+    
+    const newOrders = localOrders.filter((_, i) => i !== index);
+    
+    setIsSavingOrders(true);
     try {
-      const success = await updateOrderDetails(poId, item.id, localOrderDetails, accessMode);
+      const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
       if (success) {
+        setLocalOrders(newOrders);
         onItemUpdated();
       }
     } catch (error) {
-      console.error('Error saving order details:', error);
+      console.error('Error deleting order:', error);
     } finally {
-      setIsSavingOrder(false);
+      setIsSavingOrders(false);
+    }
+  };
+
+  const handleAddOrder = async () => {
+    if (!item || !canSave) return;
+    
+    const newOrder: OrderEntry = {
+      orderId: '',
+      supplier: '',
+      subtotal: 0,
+      misc: 0,
+      total: 0,
+      units: 0,
+    };
+    
+    const newOrders = [...localOrders, newOrder];
+    
+    setIsSavingOrders(true);
+    try {
+      const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
+      if (success) {
+        setLocalOrders(newOrders);
+        onItemUpdated();
+        // Start editing the new order
+        setEditingIndex(newOrders.length - 1);
+        setEditingOrder(newOrder);
+      }
+    } catch (error) {
+      console.error('Error adding order:', error);
+    } finally {
+      setIsSavingOrders(false);
     }
   };
 
@@ -195,7 +463,15 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
         <div className="p-3 sm:p-4 overflow-y-auto h-[calc(100%-52px)] sm:h-[calc(100%-64px)]">
           {/* SKU Header */}
           <div className="mb-4 sm:mb-6">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 break-all">{item.sku}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 break-all">{item.sku}</h3>
+            
+            {/* ASIN - Only visible to ADMIN, not editable */}
+            {canSave && item.asin && (
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 font-mono">
+                ASIN: {item.asin}
+              </p>
+            )}
+            
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(item.category)}`}>
                 {getCategoryLabel(item.category)}
@@ -251,114 +527,59 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
             </div>
           </div>
 
-          {/* Order Details Section */}
-          {localOrderDetails && (
-            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
-              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
-                  <FileText size={14} className="sm:w-4 sm:h-4" />
-                  Order Details
-                </h4>
-                {canSave && (
-                  <button
-                    onClick={handleSaveOrderDetails}
-                    disabled={isSavingOrder}
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
-                      bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 
-                      dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSavingOrder ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : <Save size={10} className="sm:w-3 sm:h-3" />}
-                    Save
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-2.5 sm:space-y-3">
-                {/* Order ID - Only ADMIN can see and edit */}
-                {canViewOrderId && (
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</label>
-                    <input
-                      type="text"
-                      value={localOrderDetails.orderId}
-                      onChange={(e) => handleOrderDetailsChange('orderId', e.target.value)}
-                      disabled={!canEditAdminFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-
-                {/* Supplier - Only ADMIN can see and edit */}
-                {canViewSupplier && (
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                      <Truck size={10} className="sm:w-3 sm:h-3" />
-                      Supplier
-                    </label>
-                    <input
-                      type="text"
-                      value={localOrderDetails.supplier}
-                      onChange={(e) => handleOrderDetailsChange('supplier', e.target.value)}
-                      disabled={!canEditAdminFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-
-                {/* Number Fields Grid - VIEW/EDIT/ADMIN can see, EDIT/ADMIN can edit (EDIT = UI only) */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Subtotal</label>
-                    <input
-                      type="number"
-                      value={localOrderDetails.subtotal}
-                      onChange={(e) => handleOrderDetailsChange('subtotal', e.target.value)}
-                      disabled={!canEditNumericFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Misc</label>
-                    <input
-                      type="number"
-                      value={localOrderDetails.misc}
-                      onChange={(e) => handleOrderDetailsChange('misc', e.target.value)}
-                      disabled={!canEditNumericFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total</label>
-                    <input
-                      type="number"
-                      value={localOrderDetails.total}
-                      onChange={(e) => handleOrderDetailsChange('total', e.target.value)}
-                      disabled={!canEditNumericFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Units</label>
-                    <input
-                      type="number"
-                      value={localOrderDetails.units}
-                      onChange={(e) => handleOrderDetailsChange('units', e.target.value)}
-                      disabled={!canEditNumericFields}
-                      className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Edit Mode Warning */}
-                {canEditNumericFields && !canSave && (
-                  <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 italic">
-                    Changes in EDIT mode are not saved.
-                  </p>
-                )}
-              </div>
+          {/* Orders Section */}
+          <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+            <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
+                <FileText size={14} className="sm:w-4 sm:h-4" />
+                Orders ({localOrders.length})
+              </h4>
+              {canSave && (
+                <button
+                  onClick={handleAddOrder}
+                  disabled={isSavingOrders}
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
+                    bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 
+                    dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingOrders ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : <Plus size={10} className="sm:w-3 sm:h-3" />}
+                  Add Order
+                </button>
+              )}
             </div>
-          )}
+
+            {localOrders.length === 0 ? (
+              <div className="text-center py-6 text-gray-400 dark:text-gray-500">
+                <FileText size={24} className="mx-auto mb-2 opacity-50" />
+                <p className="text-xs sm:text-sm">No orders yet</p>
+                {canSave && (
+                  <p className="text-[10px] sm:text-xs mt-1">Click "Add Order" to create one</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {localOrders.map((order, index) => (
+                  <OrderCard
+                    key={index}
+                    order={order}
+                    index={index}
+                    isEditing={editingIndex === index}
+                    editingOrder={editingIndex === index ? editingOrder : null}
+                    onStartEdit={() => handleStartEdit(index)}
+                    onCancelEdit={handleCancelEdit}
+                    onSaveEdit={handleSaveEdit}
+                    onDelete={() => handleDeleteOrder(index)}
+                    onFieldChange={handleFieldChange}
+                    canEditAdminFields={canEditAdminFields}
+                    canEditNumericFields={canEditNumericFields}
+                    canSave={canSave}
+                    isSaving={isSavingOrders}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Status Controls - Only ADMIN can change status */}
           {canSave && (
@@ -405,13 +626,14 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
             </div>
           )}
 
-          {/* Invoice Section - Only visible to ADMIN */}
+          {/* Invoice Section - Only ADMIN */}
           {canViewInvoices && (
-            <InvoiceSection 
-              poId={poId} 
-              itemId={item.id} 
+            <InvoiceSection
+              itemId={item.id}
+              poId={poId}
               invoices={item.invoices || []}
               onInvoiceUploaded={onItemUpdated}
+              accessMode={accessMode}
             />
           )}
         </div>
