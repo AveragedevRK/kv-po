@@ -188,7 +188,7 @@ const App: React.FC = () => {
 
   return (
     <AccessProvider>
-    <div className={`min-h-screen font-sans transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-24 sm:pb-20 relative overflow-hidden print:bg-white print:text-black`}>
+    <div className={`min-h-screen font-sans transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-24 sm:pb-20 relative overflow-x-hidden print:bg-white print:text-black`}>
       {/* Background Logo */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.015]">
         <img 
@@ -203,15 +203,15 @@ const App: React.FC = () => {
         
         {/* Main Header */}
         <header className={`border-b transition-colors duration-200 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} print:border-b print:border-gray-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-20 items-center">
-              <div className="flex items-center">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16 sm:h-20 items-center">
+              <div className="flex items-center min-w-0 flex-1">
                 <img 
                   src={LOGO_URL}
                   alt="KV Logo" 
-                  className="h-12 w-auto mr-4 rounded-md"
+                  className="h-10 sm:h-12 w-auto mr-3 sm:mr-4 rounded-md flex-shrink-0"
                 />
-                <div className={`border-l pl-4 flex flex-col justify-center transition-colors duration-200 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                <div className={`border-l pl-3 sm:pl-4 flex flex-col justify-center transition-colors duration-200 min-w-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                   {isPOsLoading ? (
                     <HeaderSkeleton />
                   ) : (
@@ -225,14 +225,14 @@ const App: React.FC = () => {
                         isLoading={isPOsLoading}
                         isAdvancing={isAdvancing}
                       />
-                      <p className={`text-xs font-semibold uppercase tracking-wider leading-none mt-1 transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
+                      <p className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider leading-none mt-1 transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent truncate`}>
                         {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
                       </p>
                     </>
                   )}
                 </div>
               </div>
-              <div className="hidden sm:flex items-center space-x-3 no-print">
+              <div className="hidden sm:flex items-center space-x-3 no-print flex-shrink-0">
                  <button
                   onClick={toggleTheme}
                   className={`p-2 rounded-full transition-colors duration-200 focus:outline-none ${isDarkMode ? 'text-brand-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-brand-50'}`}
@@ -277,7 +277,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 relative z-10">
         
         {isLoading || !selectedPO ? (
           <PageSkeleton />

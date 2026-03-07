@@ -77,19 +77,19 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
       {/* PO Selector Dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={handleToggle}
           disabled={isLoading}
-          className="group flex items-center gap-1.5 text-xl font-bold leading-none transition-all duration-300 ease-out dark:text-white text-gray-900 hover:text-brand-600 dark:hover:text-brand-400 focus:outline-none active:scale-[0.98]"
+          className="group flex items-center gap-1 sm:gap-1.5 text-base sm:text-xl font-bold leading-none transition-all duration-300 ease-out dark:text-white text-gray-900 hover:text-brand-600 dark:hover:text-brand-400 focus:outline-none active:scale-[0.98]"
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
           ) : (
             <>
-              <span className="transition-all duration-200">{selectedPO?.name || 'Select PO'}</span>
+              <span className="transition-all duration-200 truncate max-w-[120px] sm:max-w-none">{selectedPO?.name || 'Select PO'}</span>
               <div className={`flex items-center justify-center w-5 h-5 rounded-full transition-all duration-300 ease-out ${isOpen ? 'bg-brand-100 dark:bg-brand-900/40' : 'group-hover:bg-gray-100 dark:group-hover:bg-gray-800'}`}>
                 <ChevronDown 
                   size={14} 
@@ -103,7 +103,7 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
         {/* Dropdown Menu */}
         {isOpen && (
           <div 
-            className={`absolute top-full left-0 mt-3 min-w-[280px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 z-50 overflow-hidden
+            className={`absolute top-full left-0 mt-2 sm:mt-3 w-[calc(100vw-24px)] sm:w-auto sm:min-w-[280px] max-w-[320px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 rounded-xl sm:rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 z-50 overflow-hidden
               ${isAnimating ? 'animate-dropdown-out' : 'animate-dropdown-in'}`}
             style={{
               transformOrigin: 'top left',
@@ -185,7 +185,7 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
           </button>
 
           {isMenuOpen && (
-            <div className="absolute top-full right-0 mt-2 min-w-[220px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 z-50 overflow-hidden animate-dropdown-in"
+            <div className="absolute top-full right-0 mt-2 w-[calc(100vw-24px)] sm:w-auto sm:min-w-[220px] max-w-[280px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 z-50 overflow-hidden animate-dropdown-in"
               style={{ transformOrigin: 'top right' }}
             >
               <div className="py-1">
