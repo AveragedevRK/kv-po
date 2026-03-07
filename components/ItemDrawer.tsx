@@ -22,10 +22,20 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   // Local state for order details editing (EDIT mode changes stay local, not saved)
   const [localOrderDetails, setLocalOrderDetails] = useState<OrderDetails | null>(null);
   
-  // Reset local order details when item changes
+  // Reset local order details when item changes - always initialize with defaults
   useEffect(() => {
     if (item?.orderDetails) {
       setLocalOrderDetails({ ...item.orderDetails });
+    } else if (item) {
+      // Initialize with defaults if no order details exist
+      setLocalOrderDetails({
+        orderId: '',
+        supplier: '',
+        subtotal: 0,
+        misc: 0,
+        total: 0,
+        units: 0,
+      });
     } else {
       setLocalOrderDetails(null);
     }

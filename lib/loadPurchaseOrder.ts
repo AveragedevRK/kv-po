@@ -115,15 +115,15 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
   const items: SkuDataWithId[] = itemsSnapshot.docs.map((docSnapshot) => {
     const data = docSnapshot.data() as FirestoreItem & { invoices?: string[] };
     
-    // Build order details if any fields exist
-    const orderDetails: OrderDetails | undefined = (data.orderId || data.supplier) ? {
+    // Always initialize order details with values from Firestore or defaults
+    const orderDetails: OrderDetails = {
       orderId: data.orderId || '',
       supplier: data.supplier || '',
       subtotal: data.subtotal || 0,
       misc: data.misc || 0,
       total: data.total || 0,
       units: data.units || 0,
-    } : undefined;
+    };
     
     return {
       id: docSnapshot.id,
