@@ -54,7 +54,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   }, [isOpen, onClose]);
 
   const handleStatusChange = async (newStatus: ItemStatus) => {
-    if (!item || item.status !== 'Unprocessed') return;
+    if (!item || item.status !== 'Awaiting Payment') return;
     
     setIsUpdating(true);
     try {
@@ -97,8 +97,10 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Unprocessed':
+      case 'Awaiting Payment':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'Partially Processed':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
       case 'Processed':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Excluded':
@@ -199,27 +201,39 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
           {/* Status Controls */}
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Update Status</h4>
-            {item.status === 'Unprocessed' ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleStatusChange('Processed')}
-                  disabled={isUpdating}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200
-                    bg-green-50 border-green-200 text-green-700 hover:bg-green-100 
-                    dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdating ? <Loader2 size={16} className="animate-spin" /> : 'Mark as Processed'}
-                </button>
+            {item.status === 'Awaiting Payment' ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleStatusChange('Partially Processed')}
+                    disabled={isUpdating}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200
+                      bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 
+                      dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/30
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? <Loader2 size={16} className="animate-spin" /> : 'Partially Processed'}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange('Processed')}
+                    disabled={isUpdating}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200
+                      bg-green-50 border-green-200 text-green-700 hover:bg-green-100 
+                      dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? <Loader2 size={16} className="animate-spin" /> : 'Processed'}
+                  </button>
+                </div>
                 <button
                   onClick={() => handleStatusChange('Excluded')}
                   disabled={isUpdating}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200
                     bg-red-50 border-red-200 text-red-700 hover:bg-red-100 
                     dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30
                     disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isUpdating ? <Loader2 size={16} className="animate-spin" /> : 'Mark as Excluded'}
+                  {isUpdating ? <Loader2 size={16} className="animate-spin" /> : 'Excluded'}
                 </button>
               </div>
             ) : (

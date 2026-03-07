@@ -178,20 +178,20 @@ export async function advancePOStatus(poId: string, currentStatus: POStatus): Pr
   return nextStatus;
 }
 
-// Update item status (Unprocessed -> Processed or Excluded only)
+// Update item status (Awaiting Payment -> Partially Processed, Processed, or Excluded)
 export async function updateItemStatus(
   poId: string, 
   itemId: string, 
   currentStatus: ItemStatus, 
   newStatus: ItemStatus
 ): Promise<boolean> {
-  // Only allow transitions from Unprocessed
-  if (currentStatus !== 'Unprocessed') {
+  // Only allow transitions from 'Awaiting Payment'
+  if (currentStatus !== 'Awaiting Payment') {
     return false;
   }
   
-  // Only allow transitioning to Processed or Excluded
-  if (newStatus !== 'Processed' && newStatus !== 'Excluded') {
+  // Only allow transitioning to valid statuses
+  if (newStatus !== 'Partially Processed' && newStatus !== 'Processed' && newStatus !== 'Excluded') {
     return false;
   }
   

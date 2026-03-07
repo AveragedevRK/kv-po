@@ -189,7 +189,12 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                     ${item.profit.toLocaleString()}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${item.status === 'Awaiting Payment' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                        item.status === 'Partially Processed' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                        item.status === 'Processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                        item.status === 'Excluded' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
                       {item.status}
                     </span>
                   </td>
@@ -220,7 +225,12 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                   <div className="font-bold text-gray-900 dark:text-white text-base">{item.sku}</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{item.account}</div>
                 </div>
-                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 whitespace-nowrap ml-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium whitespace-nowrap ml-2
+                  ${item.status === 'Awaiting Payment' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                    item.status === 'Partially Processed' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                    item.status === 'Processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                    item.status === 'Excluded' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
                   {item.status}
                 </span>
               </div>

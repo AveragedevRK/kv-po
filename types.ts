@@ -32,8 +32,8 @@ export interface PurchaseOrder {
   updatedAt: Date;
 }
 
-// Item status types
-export type ItemStatus = 'Unprocessed' | 'Processed' | 'Excluded';
+// Item status types - Default is 'Awaiting Payment', can be changed to any of the others
+export type ItemStatus = 'Awaiting Payment' | 'Partially Processed' | 'Processed' | 'Excluded';
 
 export interface SkuDataWithId extends SkuData {
   id: string;

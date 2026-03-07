@@ -4,7 +4,6 @@ import SummaryCards from './components/SummaryCards';
 import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
 import POSelector from './components/POSelector';
-import StatusAdvance from './components/StatusAdvance';
 import ItemDrawer from './components/ItemDrawer';
 import { loadPurchaseOrder, loadAllPurchaseOrders, advancePOStatus } from './lib/loadPurchaseOrder';
 import { OverallStats, AccountStat, PurchaseOrder, SkuDataWithId } from './types';
@@ -26,6 +25,7 @@ const App: React.FC = () => {
   // Drawer state
   const [selectedItem, setSelectedItem] = useState<SkuDataWithId | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -109,11 +109,16 @@ const App: React.FC = () => {
 
   // Handle status advance
   const handleAdvanceStatus = async () => {
-    if (!selectedPO) return;
+    if (!selectedPO || isAdvancing) return;
     
-    const newStatus = await advancePOStatus(selectedPO.id, selectedPO.status);
-    if (newStatus) {
-      setSelectedPO({ ...selectedPO, status: newStatus });
+    setIsAdvancing(true);
+    try {
+      const newStatus = await advancePOStatus(selectedPO.id, selectedPO.status);
+      if (newStatus) {
+        setSelectedPO({ ...selectedPO, status: newStatus });
+      }
+    } finally {
+      setIsAdvancing(false);
     }
   };
 
@@ -206,19 +211,13 @@ const App: React.FC = () => {
                     purchaseOrders={purchaseOrders}
                     selectedPO={selectedPO}
                     onSelect={handlePOSelect}
+                    onAdvanceStatus={handleAdvanceStatus}
                     isLoading={isPOsLoading}
+                    isAdvancing={isAdvancing}
                   />
-                  <div className="flex items-center gap-3 mt-1">
-                    <p className={`text-xs font-semibold uppercase tracking-wider leading-none transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
-                      {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
-                    </p>
-                    {selectedPO && (
-                      <StatusAdvance 
-                        currentStatus={selectedPO.status} 
-                        onAdvance={handleAdvanceStatus} 
-                      />
-                    )}
-                  </div>
+                  <p className={`text-xs font-semibold uppercase tracking-wider leading-none mt-1 transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
+                    {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
+                  </p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center space-x-3 no-print">
