@@ -1,17 +1,79 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { AccountStat } from '../types';
-import { TrendingUp, Clock, DollarSign } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface AccountBreakdownProps {
   accounts: AccountStat[];
 }
 
+type SortKey = 'investment' | 'profit' | 'turnover' | 'roi';
+
 const AccountBreakdown: React.FC<AccountBreakdownProps> = ({ accounts }) => {
-  const sortedAccounts = [...accounts].sort((a, b) => b.investment - a.investment);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'investment', direction: 'desc' });
+
+  const handleSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sortConfig.key === key) {
+      direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAccounts = useMemo(() => {
+    return [...accounts].sort((a, b) => {
+      let aVal: number;
+      let bVal: number;
+
+      if (sortConfig.key === 'roi') {
+        aVal = (a.profit / a.investment) * 100;
+        bVal = (b.profit / b.investment) * 100;
+      } else {
+        aVal = a[sortConfig.key];
+        bVal = b[sortConfig.key];
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [accounts, sortConfig]);
+
+  const SortButton = ({ label, sortKey }: { label: string; sortKey: SortKey }) => {
+    const isActive = sortConfig.key === sortKey;
+    const isAsc = sortConfig.direction === 'asc';
+
+    return (
+      <button
+        onClick={() => handleSort(sortKey)}
+        className={`flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-colors duration-200
+          ${isActive 
+            ? 'bg-brand-100 border-brand-300 text-brand-800 dark:bg-brand-900/40 dark:border-brand-700 dark:text-brand-200' 
+            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-750'}
+        `}
+      >
+        {label}
+        {isActive && (
+          <span className="ml-1">
+            {isAsc ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="mb-8">
-      <h2 className="text-lg font-bold mb-4 dark:text-brand-100 text-gray-800 transition-colors duration-200">Account Projection Breakdown</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h2 className="text-lg font-bold dark:text-brand-100 text-gray-800 transition-colors duration-200">Account Projection Breakdown</h2>
+        
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Sort by:</span>
+          <SortButton label="Investment" sortKey="investment" />
+          <SortButton label="Profit" sortKey="profit" />
+          <SortButton label="Turnover" sortKey="turnover" />
+          <SortButton label="ROI" sortKey="roi" />
+        </div>
+      </div>
       
       {/* Grid Layout: 1 col mobile, 2 cols tablet, 4 cols desktop */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
