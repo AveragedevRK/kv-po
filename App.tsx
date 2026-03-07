@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Sun, Moon, Download, Code } from 'lucide-react';
+import { FileText, Sun, Moon, Download, Code, Loader2 } from 'lucide-react';
 import SummaryCards from './components/SummaryCards';
 import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
-import { OVERALL_STATS, ACCOUNT_STATS, SKU_DATA } from './data';
+import { loadPurchaseOrder } from './lib/loadPurchaseOrder';
+import { OverallStats, AccountStat, SkuData } from './types';
 import { initializeTelemetry } from './telemetry';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [overallStats, setOverallStats] = useState<OverallStats>({ totalInvestment: 0, totalProfit: 0, avgTurnover: 0 });
+  const [accountStats, setAccountStats] = useState<AccountStat[]>([]);
+  const [skuData, setSkuData] = useState<SkuData[]>([]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -22,6 +28,26 @@ const App: React.FC = () => {
     initializeTelemetry();
   }, []);
 
+  // Load data from Firestore
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const result = await loadPurchaseOrder('PO-2026-001');
+        setOverallStats(result.overallStats);
+        setAccountStats(result.accountStats);
+        setSkuData(result.items);
+      } catch (err) {
+        console.error('Error loading purchase order:', err);
+        setError('Failed to load purchase order data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   const handleExportPDF = () => {
     // Set title to filename for auto-save naming
     const originalTitle = document.title;
@@ -33,7 +59,7 @@ const App: React.FC = () => {
 
   const handleExportCSV = () => {
     const headers = ['SKU', 'Account', 'Category', 'Turnover (Days)', 'Investment', 'Profit', 'Status'];
-    const rows = SKU_DATA.map(item => [
+    const rows = skuData.map(item => [
       `"${item.sku}"`,
       `"${item.account}"`,
       `"${item.category}"`,
@@ -142,21 +168,36 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
-        {/* Section: Overview */}
-        <div className="mb-8 break-inside-avoid">
-          <h2 className={`text-lg font-semibold mb-4 transition-colors duration-200 ${isDarkMode ? 'text-brand-100' : 'text-gray-800'}`}>Overview</h2>
-          <SummaryCards stats={OVERALL_STATS} />
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <Loader2 className="h-10 w-10 animate-spin text-brand-500 mb-4" />
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading purchase order data...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-600'}`}>
+              <p className="text-sm">{error}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Section: Overview */}
+            <div className="mb-8 break-inside-avoid">
+              <h2 className={`text-lg font-semibold mb-4 transition-colors duration-200 ${isDarkMode ? 'text-brand-100' : 'text-gray-800'}`}>Overview</h2>
+              <SummaryCards stats={overallStats} />
+            </div>
 
-        {/* Section: Account Breakdown */}
-        <div className="mb-8 break-inside-avoid">
-          <AccountBreakdown accounts={ACCOUNT_STATS} />
-        </div>
+            {/* Section: Account Breakdown */}
+            <div className="mb-8 break-inside-avoid">
+              <AccountBreakdown accounts={accountStats} />
+            </div>
 
-        {/* Section: SKU Detail */}
-        <div className="break-inside-auto">
-           <SkuTable data={SKU_DATA} />
-        </div>
+            {/* Section: SKU Detail */}
+            <div className="break-inside-auto">
+               <SkuTable data={skuData} />
+            </div>
+          </>
+        )}
 
       </main>
       
