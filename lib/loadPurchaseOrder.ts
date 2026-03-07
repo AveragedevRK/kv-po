@@ -1,7 +1,7 @@
 import { db, storage } from './firebase';
 import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
-import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus } from '../types';
+import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus, OrderDetails, AccessMode } from '../types';
 
 // PO ID constant for now
 const DEFAULT_PO_ID = 'PO-2026-001';
@@ -17,6 +17,12 @@ interface FirestoreItem {
   profit: number;
   units: number;
   status: string;
+  // Order details fields
+  orderId?: string;
+  supplier?: string;
+  subtotal?: number;
+  misc?: number;
+  total?: number;
 }
 
 interface LoadPurchaseOrderResult {
@@ -108,6 +114,17 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
   
   const items: SkuDataWithId[] = itemsSnapshot.docs.map((docSnapshot) => {
     const data = docSnapshot.data() as FirestoreItem & { invoices?: string[] };
+    
+    // Build order details if any fields exist
+    const orderDetails: OrderDetails | undefined = (data.orderId || data.supplier) ? {
+      orderId: data.orderId || '',
+      supplier: data.supplier || '',
+      subtotal: data.subtotal || 0,
+      misc: data.misc || 0,
+      total: data.total || 0,
+      units: data.units || 0,
+    } : undefined;
+    
     return {
       id: docSnapshot.id,
       sku: data.sku,
@@ -119,6 +136,7 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
       units: data.units,
       status: data.status,
       invoices: data.invoices || [],
+      orderDetails,
     };
   });
 
@@ -237,5 +255,61 @@ export async function getItemInvoices(poId: string, itemId: string): Promise<str
     return urls;
   } catch {
     return [];
+  }
+}
+
+// Validate PIN code against systemConfig/accessCodes in Firestore
+export async function validateAccessCode(pin: string): Promise<AccessMode | null> {
+  try {
+    const configDocRef = doc(db, 'systemConfig', 'accessCodes');
+    const configSnapshot = await getDoc(configDocRef);
+    
+    if (!configSnapshot.exists()) {
+      return null;
+    }
+    
+    const data = configSnapshot.data();
+    
+    if (pin === data.adminCode) {
+      return 'ADMIN';
+    }
+    
+    if (pin === data.editCode) {
+      return 'EDIT';
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error validating access code:', error);
+    return null;
+  }
+}
+
+// Update order details for an item (ADMIN only)
+export async function updateOrderDetails(
+  poId: string,
+  itemId: string,
+  orderDetails: OrderDetails,
+  accessMode: AccessMode
+): Promise<boolean> {
+  // Only ADMIN can write to Firestore
+  if (accessMode !== 'ADMIN') {
+    return false;
+  }
+  
+  try {
+    const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+    await updateDoc(itemDocRef, {
+      orderId: orderDetails.orderId,
+      supplier: orderDetails.supplier,
+      subtotal: orderDetails.subtotal,
+      misc: orderDetails.misc,
+      total: orderDetails.total,
+      units: orderDetails.units,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating order details:', error);
+    return false;
   }
 }

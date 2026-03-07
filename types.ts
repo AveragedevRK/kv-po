@@ -39,7 +39,21 @@ export interface SkuDataWithId extends SkuData {
   id: string;
   units: number;
   invoices?: string[];
+  orderDetails?: OrderDetails;
 }
+
+// Order Details for items
+export interface OrderDetails {
+  orderId: string;
+  supplier: string;
+  subtotal: number;
+  misc: number;
+  total: number;
+  units: number;
+}
+
+// Access mode types
+export type AccessMode = 'VIEW' | 'EDIT' | 'ADMIN';
 
 export interface AccountStat {
   name: string;

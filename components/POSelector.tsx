@@ -1,23 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check, Loader2, MoreVertical, ArrowRight } from 'lucide-react';
+import { ChevronDown, Check, Loader2, MoreVertical, ArrowRight, Lock, LogOut } from 'lucide-react';
 import { PurchaseOrder, PO_STATUS_ORDER } from '../types';
 import StatusBadge, { getStatusColor } from './StatusAdvance';
+import { useAccess } from '../context/AccessContext';
 
 interface POSelectorProps {
   purchaseOrders: PurchaseOrder[];
   selectedPO: PurchaseOrder | null;
   onSelect: (po: PurchaseOrder) => void;
   onAdvanceStatus?: () => Promise<void>;
+  onRequestAccess?: () => void;
   isLoading?: boolean;
   isAdvancing?: boolean;
 }
 
-const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onSelect, onAdvanceStatus, isLoading, isAdvancing }) => {
+const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onSelect, onAdvanceStatus, onRequestAccess, isLoading, isAdvancing }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { accessMode, resetAccess, canSave } = useAccess();
 
   const currentIndex = selectedPO ? PO_STATUS_ORDER.indexOf(selectedPO.status) : -1;
   const isAtFinalStatus = currentIndex >= PO_STATUS_ORDER.length - 1;
@@ -166,8 +169,8 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
         <StatusBadge status={selectedPO.status} />
       )}
 
-      {/* Kebab Menu for Status Advance */}
-      {selectedPO && !isAtFinalStatus && onAdvanceStatus && (
+      {/* Kebab Menu for Status Advance and Access Control */}
+      {selectedPO && (
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -186,23 +189,77 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
               style={{ transformOrigin: 'top right' }}
             >
               <div className="py-1">
-                <button
-                  onClick={handleAdvance}
-                  disabled={isAdvancing}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 disabled:opacity-50 group/advance"
-                >
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${isAdvancing ? 'bg-brand-100 dark:bg-brand-900/40' : 'bg-gray-100 dark:bg-gray-800 group-hover/advance:bg-brand-100 dark:group-hover/advance:bg-brand-900/40'}`}>
-                    {isAdvancing ? (
-                      <Loader2 size={16} className="animate-spin text-brand-600 dark:text-brand-400" />
-                    ) : (
-                      <ArrowRight size={16} className="text-gray-500 dark:text-gray-400 group-hover/advance:text-brand-600 dark:group-hover/advance:text-brand-400 transition-colors duration-200" />
-                    )}
+                {/* Advance Status - Only for ADMIN and when not at final status */}
+                {canSave && !isAtFinalStatus && onAdvanceStatus && (
+                  <button
+                    onClick={handleAdvance}
+                    disabled={isAdvancing}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 disabled:opacity-50 group/advance"
+                  >
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${isAdvancing ? 'bg-brand-100 dark:bg-brand-900/40' : 'bg-gray-100 dark:bg-gray-800 group-hover/advance:bg-brand-100 dark:group-hover/advance:bg-brand-900/40'}`}>
+                      {isAdvancing ? (
+                        <Loader2 size={16} className="animate-spin text-brand-600 dark:text-brand-400" />
+                      ) : (
+                        <ArrowRight size={16} className="text-gray-500 dark:text-gray-400 group-hover/advance:text-brand-600 dark:group-hover/advance:text-brand-400 transition-colors duration-200" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium">Advance Status</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Move to {nextStatus}</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Request Edit Access - Only in VIEW mode */}
+                {accessMode === 'VIEW' && onRequestAccess && (
+                  <button
+                    onClick={() => {
+                      onRequestAccess();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 group/access"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 bg-gray-100 dark:bg-gray-800 group-hover/access:bg-amber-100 dark:group-hover/access:bg-amber-900/40">
+                      <Lock size={16} className="text-gray-500 dark:text-gray-400 group-hover/access:text-amber-600 dark:group-hover/access:text-amber-400 transition-colors duration-200" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium">Request Edit Access</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Enter PIN to edit</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Logout/Reset Access - Only when not in VIEW mode */}
+                {accessMode !== 'VIEW' && (
+                  <button
+                    onClick={() => {
+                      resetAccess();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 group/logout"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 bg-gray-100 dark:bg-gray-800 group-hover/logout:bg-red-100 dark:group-hover/logout:bg-red-900/40">
+                      <LogOut size={16} className="text-gray-500 dark:text-gray-400 group-hover/logout:text-red-600 dark:group-hover/logout:text-red-400 transition-colors duration-200" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium">Exit {accessMode} Mode</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Return to view only</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Show current access mode indicator */}
+                {accessMode !== 'VIEW' && (
+                  <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      accessMode === 'ADMIN' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                    }`}>
+                      {accessMode} MODE
+                    </span>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Advance Status</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">Move to {nextStatus}</span>
-                  </div>
-                </button>
+                )}
               </div>
             </div>
           )}
