@@ -189,27 +189,6 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
               style={{ transformOrigin: 'top right' }}
             >
               <div className="py-1">
-                {/* Advance Status - Only for ADMIN and when not at final status */}
-                {canSave && !isAtFinalStatus && onAdvanceStatus && (
-                  <button
-                    onClick={handleAdvance}
-                    disabled={isAdvancing}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 disabled:opacity-50 group/advance"
-                  >
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${isAdvancing ? 'bg-brand-100 dark:bg-brand-900/40' : 'bg-gray-100 dark:bg-gray-800 group-hover/advance:bg-brand-100 dark:group-hover/advance:bg-brand-900/40'}`}>
-                      {isAdvancing ? (
-                        <Loader2 size={16} className="animate-spin text-brand-600 dark:text-brand-400" />
-                      ) : (
-                        <ArrowRight size={16} className="text-gray-500 dark:text-gray-400 group-hover/advance:text-brand-600 dark:group-hover/advance:text-brand-400 transition-colors duration-200" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium">Advance Status</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">Move to {nextStatus}</span>
-                    </div>
-                  </button>
-                )}
-
                 {/* Request Edit Access - Only in VIEW mode */}
                 {accessMode === 'VIEW' && onRequestAccess && (
                   <button
@@ -246,6 +225,32 @@ const POSelector: React.FC<POSelectorProps> = ({ purchaseOrders, selectedPO, onS
                       <span className="text-xs text-gray-400 dark:text-gray-500">Return to view only</span>
                     </div>
                   </button>
+                )}
+
+                {/* Advance Status - Always visible when not at final status, but requires ADMIN to execute */}
+                {!isAtFinalStatus && onAdvanceStatus && (
+                  <>
+                    <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
+                    <button
+                      onClick={handleAdvance}
+                      disabled={isAdvancing || !canSave}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed group/advance"
+                    >
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${isAdvancing ? 'bg-brand-100 dark:bg-brand-900/40' : 'bg-gray-100 dark:bg-gray-800 group-hover/advance:bg-brand-100 dark:group-hover/advance:bg-brand-900/40'}`}>
+                        {isAdvancing ? (
+                          <Loader2 size={16} className="animate-spin text-brand-600 dark:text-brand-400" />
+                        ) : (
+                          <ArrowRight size={16} className="text-gray-500 dark:text-gray-400 group-hover/advance:text-brand-600 dark:group-hover/advance:text-brand-400 transition-colors duration-200" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">Advance Status</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {canSave ? `Move to ${nextStatus}` : 'Requires ADMIN access'}
+                        </span>
+                      </div>
+                    </button>
+                  </>
                 )}
 
                 {/* Show current access mode indicator */}
