@@ -17,7 +17,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   const drawerRef = useRef<HTMLDivElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const { accessMode, canEdit, canSave, canViewSupplier, canViewInvoices } = useAccess();
+  const { accessMode, canEditAdminFields, canEditNumericFields, canSave, canViewOrderId, canViewSupplier, canViewInvoices } = useAccess();
   
   // Local state for order details editing (EDIT mode changes stay local, not saved)
   const [localOrderDetails, setLocalOrderDetails] = useState<OrderDetails | null>(null);
@@ -275,40 +275,38 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
               </div>
 
               <div className="space-y-3">
-                {/* Order ID */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</label>
-                  <input
-                    type="text"
-                    value={localOrderDetails.orderId}
-                    onChange={(e) => handleOrderDetailsChange('orderId', e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  />
-                </div>
+                {/* Order ID - Only ADMIN can see and edit */}
+                {canViewOrderId && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</label>
+                    <input
+                      type="text"
+                      value={localOrderDetails.orderId}
+                      onChange={(e) => handleOrderDetailsChange('orderId', e.target.value)}
+                      disabled={!canEditAdminFields}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
 
-                {/* Supplier - Hidden for VIEW and EDIT modes */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                    <Truck size={12} />
-                    Supplier
-                  </label>
-                  {canViewSupplier ? (
+                {/* Supplier - Only ADMIN can see and edit */}
+                {canViewSupplier && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                      <Truck size={12} />
+                      Supplier
+                    </label>
                     <input
                       type="text"
                       value={localOrderDetails.supplier}
                       onChange={(e) => handleOrderDetailsChange('supplier', e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!canEditAdminFields}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
-                  ) : (
-                    <div className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 italic">
-                      Hidden
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* Number Fields Grid */}
+                {/* Number Fields Grid - VIEW/EDIT/ADMIN can see, EDIT/ADMIN can edit (EDIT = UI only) */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Subtotal</label>
@@ -316,7 +314,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                       type="number"
                       value={localOrderDetails.subtotal}
                       onChange={(e) => handleOrderDetailsChange('subtotal', e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!canEditNumericFields}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
@@ -326,7 +324,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                       type="number"
                       value={localOrderDetails.misc}
                       onChange={(e) => handleOrderDetailsChange('misc', e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!canEditNumericFields}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
@@ -336,7 +334,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                       type="number"
                       value={localOrderDetails.total}
                       onChange={(e) => handleOrderDetailsChange('total', e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!canEditNumericFields}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
@@ -346,14 +344,14 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                       type="number"
                       value={localOrderDetails.units}
                       onChange={(e) => handleOrderDetailsChange('units', e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!canEditNumericFields}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     />
                   </div>
                 </div>
 
                 {/* Edit Mode Warning */}
-                {canEdit && !canSave && (
+                {canEditNumericFields && !canSave && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 italic">
                     Changes in EDIT mode are not saved to the database.
                   </p>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Sun, Moon, Download, Code, Loader2 } from 'lucide-react';
+import { FileText, Sun, Moon, Download, Code } from 'lucide-react';
 import SummaryCards from './components/SummaryCards';
 import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
 import POSelector from './components/POSelector';
 import ItemDrawer from './components/ItemDrawer';
 import PinModal from './components/PinModal';
+import PageSkeleton, { HeaderSkeleton } from './components/SkeletonLoader';
 import { AccessProvider } from './context/AccessContext';
 import { loadPurchaseOrder, loadAllPurchaseOrders, advancePOStatus } from './lib/loadPurchaseOrder';
 import { OverallStats, AccountStat, PurchaseOrder, SkuDataWithId } from './types';
@@ -211,18 +212,24 @@ const App: React.FC = () => {
                   className="h-12 w-auto mr-4 rounded-md"
                 />
                 <div className={`border-l pl-4 flex flex-col justify-center transition-colors duration-200 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                  <POSelector 
-                    purchaseOrders={purchaseOrders}
-                    selectedPO={selectedPO}
-                    onSelect={handlePOSelect}
-                    onAdvanceStatus={handleAdvanceStatus}
-                    onRequestAccess={() => setIsPinModalOpen(true)}
-                    isLoading={isPOsLoading}
-                    isAdvancing={isAdvancing}
-                  />
-                  <p className={`text-xs font-semibold uppercase tracking-wider leading-none mt-1 transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
-                    {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
-                  </p>
+                  {isPOsLoading ? (
+                    <HeaderSkeleton />
+                  ) : (
+                    <>
+                      <POSelector 
+                        purchaseOrders={purchaseOrders}
+                        selectedPO={selectedPO}
+                        onSelect={handlePOSelect}
+                        onAdvanceStatus={handleAdvanceStatus}
+                        onRequestAccess={() => setIsPinModalOpen(true)}
+                        isLoading={isPOsLoading}
+                        isAdvancing={isAdvancing}
+                      />
+                      <p className={`text-xs font-semibold uppercase tracking-wider leading-none mt-1 transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
+                        {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="hidden sm:flex items-center space-x-3 no-print">
@@ -272,11 +279,8 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="h-10 w-10 animate-spin text-brand-500 mb-4" />
-            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading purchase order data...</p>
-          </div>
+        {isLoading || !selectedPO ? (
+          <PageSkeleton />
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-24">
             <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-600'}`}>
