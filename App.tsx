@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Sun, Moon, Download, Code, Loader2 } from 'lucide-react';
 import SummaryCards from './components/SummaryCards';
 import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
-import { loadPurchaseOrder } from './lib/loadPurchaseOrder';
-import { OverallStats, AccountStat, SkuData } from './types';
+import POSelector from './components/POSelector';
+import StatusAdvance from './components/StatusAdvance';
+import ItemDrawer from './components/ItemDrawer';
+import { loadPurchaseOrder, loadAllPurchaseOrders, advancePOStatus } from './lib/loadPurchaseOrder';
+import { OverallStats, AccountStat, PurchaseOrder, SkuDataWithId } from './types';
 import { initializeTelemetry } from './telemetry';
 
 const App: React.FC = () => {
@@ -13,7 +16,16 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [overallStats, setOverallStats] = useState<OverallStats>({ totalInvestment: 0, totalProfit: 0, avgTurnover: 0 });
   const [accountStats, setAccountStats] = useState<AccountStat[]>([]);
-  const [skuData, setSkuData] = useState<SkuData[]>([]);
+  const [skuData, setSkuData] = useState<SkuDataWithId[]>([]);
+  
+  // PO Selector state
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [isPOsLoading, setIsPOsLoading] = useState(true);
+  
+  // Drawer state
+  const [selectedItem, setSelectedItem] = useState<SkuDataWithId | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -28,25 +40,100 @@ const App: React.FC = () => {
     initializeTelemetry();
   }, []);
 
-  // Load data from Firestore
+  // Load all POs on mount
   useEffect(() => {
-    async function fetchData() {
+    async function fetchAllPOs() {
       try {
-        setIsLoading(true);
-        setError(null);
-        const result = await loadPurchaseOrder('PO-2026-001');
-        setOverallStats(result.overallStats);
-        setAccountStats(result.accountStats);
-        setSkuData(result.items);
+        setIsPOsLoading(true);
+        const pos = await loadAllPurchaseOrders();
+        setPurchaseOrders(pos);
+        
+        // Get poId from URL or default to first PO
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlPoId = urlParams.get('poId');
+        
+        if (urlPoId) {
+          const foundPO = pos.find(po => po.id === urlPoId);
+          if (foundPO) {
+            setSelectedPO(foundPO);
+          } else if (pos.length > 0) {
+            setSelectedPO(pos[0]);
+          }
+        } else if (pos.length > 0) {
+          setSelectedPO(pos[0]);
+        }
       } catch (err) {
-        console.error('Error loading purchase order:', err);
-        setError('Failed to load purchase order data. Please try again.');
+        console.error('Error loading purchase orders:', err);
+        setError('Failed to load purchase orders.');
       } finally {
-        setIsLoading(false);
+        setIsPOsLoading(false);
       }
     }
-    fetchData();
+    fetchAllPOs();
   }, []);
+
+  // Load PO data when selectedPO changes
+  const fetchPOData = useCallback(async (poId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await loadPurchaseOrder(poId);
+      if (result.po) {
+        setSelectedPO(result.po);
+      }
+      setOverallStats(result.overallStats);
+      setAccountStats(result.accountStats);
+      setSkuData(result.items);
+    } catch (err) {
+      console.error('Error loading purchase order:', err);
+      setError('Failed to load purchase order data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedPO?.id) {
+      fetchPOData(selectedPO.id);
+      // Update URL
+      const url = new URL(window.location.href);
+      url.searchParams.set('poId', selectedPO.id);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [selectedPO?.id, fetchPOData]);
+
+  // Handle PO selection
+  const handlePOSelect = (po: PurchaseOrder) => {
+    setSelectedPO(po);
+  };
+
+  // Handle status advance
+  const handleAdvanceStatus = async () => {
+    if (!selectedPO) return;
+    
+    const newStatus = await advancePOStatus(selectedPO.id, selectedPO.status);
+    if (newStatus) {
+      setSelectedPO({ ...selectedPO, status: newStatus });
+    }
+  };
+
+  // Refresh data (used by drawer after updates)
+  const refreshData = useCallback(() => {
+    if (selectedPO?.id) {
+      fetchPOData(selectedPO.id);
+    }
+  }, [selectedPO?.id, fetchPOData]);
+
+  // Handle row click to open drawer
+  const handleRowClick = (item: SkuDataWithId) => {
+    setSelectedItem(item);
+    setIsDrawerOpen(true);
+  };
+
+  // Close drawer
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+  };
 
   const handleExportPDF = () => {
     // Set title to filename for auto-save naming
@@ -115,10 +202,23 @@ const App: React.FC = () => {
                   className="h-12 w-auto mr-4 rounded-md"
                 />
                 <div className={`border-l pl-4 flex flex-col justify-center transition-colors duration-200 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                  <h1 className={`text-xl font-bold leading-none mb-1 transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Purchase Order #2</h1>
-                  <p className={`text-xs font-semibold uppercase tracking-wider leading-none transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
-                    Jan 2026
-                  </p>
+                  <POSelector 
+                    purchaseOrders={purchaseOrders}
+                    selectedPO={selectedPO}
+                    onSelect={handlePOSelect}
+                    isLoading={isPOsLoading}
+                  />
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className={`text-xs font-semibold uppercase tracking-wider leading-none transition-colors duration-200 bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
+                      {selectedPO ? `${selectedPO.month} ${selectedPO.year}` : ''}
+                    </p>
+                    {selectedPO && (
+                      <StatusAdvance 
+                        currentStatus={selectedPO.status} 
+                        onAdvance={handleAdvanceStatus} 
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="hidden sm:flex items-center space-x-3 no-print">
@@ -194,13 +294,24 @@ const App: React.FC = () => {
 
             {/* Section: SKU Detail */}
             <div className="break-inside-auto">
-               <SkuTable data={skuData} />
+               <SkuTable data={skuData} onRowClick={handleRowClick} />
             </div>
           </>
         )}
 
       </main>
       
+      {/* Item Drawer */}
+      {selectedPO && (
+        <ItemDrawer
+          item={selectedItem}
+          isOpen={isDrawerOpen}
+          onClose={handleCloseDrawer}
+          poId={selectedPO.id}
+          onItemUpdated={refreshData}
+        />
+      )}
+
       {/* Mobile Sticky Footer Actions */}
       <div className={`fixed bottom-0 left-0 right-0 border-t p-4 sm:hidden flex justify-between gap-3 z-40 no-print transition-colors duration-200 ${isDarkMode ? 'bg-gray-850 border-gray-700' : 'bg-white border-brand-200'}`}>
            <button

@@ -4,6 +4,43 @@ export interface OverallStats {
   avgTurnover: number;
 }
 
+// PO Status types with forward-only progression
+export type POStatus = 
+  | 'Draft' 
+  | 'Awaiting Payment' 
+  | 'Created' 
+  | 'Approved' 
+  | 'Partially Processed' 
+  | 'Processed';
+
+export const PO_STATUS_ORDER: POStatus[] = [
+  'Draft',
+  'Awaiting Payment',
+  'Created',
+  'Approved',
+  'Partially Processed',
+  'Processed'
+];
+
+export interface PurchaseOrder {
+  id: string;
+  name: string;
+  month: string;
+  year: number;
+  status: POStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Item status types
+export type ItemStatus = 'Unprocessed' | 'Processed' | 'Excluded';
+
+export interface SkuDataWithId extends SkuData {
+  id: string;
+  units: number;
+  invoices?: string[];
+}
+
 export interface AccountStat {
   name: string;
   investment: number;

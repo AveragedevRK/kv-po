@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, ArrowUp, ArrowDown } from 'lucide-react';
-import { SkuData, SkuCategory } from '../types';
+import { SkuDataWithId, SkuCategory } from '../types';
 
 interface SkuTableProps {
-  data: SkuData[];
+  data: SkuDataWithId[];
+  onRowClick?: (item: SkuDataWithId) => void;
 }
 
-const SkuTable: React.FC<SkuTableProps> = ({ data }) => {
+const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortConfig, setSortConfig] = useState<{ key: keyof SkuData; direction: 'asc' | 'desc' } | null>(null);
@@ -166,7 +167,11 @@ const SkuTable: React.FC<SkuTableProps> = ({ data }) => {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 transition-colors duration-200">
             {filteredData.length > 0 ? (
               filteredData.map((item, index) => (
-                <tr key={`${item.sku}-${index}`} className="bg-white dark:bg-gray-850 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors duration-150">
+                <tr 
+                  key={`${item.sku}-${index}`} 
+                  className="bg-white dark:bg-gray-850 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors duration-150 cursor-pointer"
+                  onClick={() => onRowClick?.(item)}
+                >
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.sku}</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{item.account}</td>
                   <td className="px-6 py-4">
@@ -205,7 +210,11 @@ const SkuTable: React.FC<SkuTableProps> = ({ data }) => {
       <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
         {filteredData.length > 0 ? (
           filteredData.map((item, index) => (
-            <div key={`${item.sku}-${index}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <div 
+            key={`${item.sku}-${index}`} 
+            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+            onClick={() => onRowClick?.(item)}
+          >
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <div className="font-bold text-gray-900 dark:text-white text-base">{item.sku}</div>

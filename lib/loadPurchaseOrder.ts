@@ -1,18 +1,12 @@
-import { db } from './firebase';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import { OverallStats, AccountStat, SkuData, SkuCategory } from '../types';
+import { db, storage } from './firebase';
+import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
+import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus } from '../types';
 
 // PO ID constant for now
 const DEFAULT_PO_ID = 'PO-2026-001';
 
-interface PurchaseOrder {
-  name: string;
-  month: string;
-  year: number;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+
 
 interface FirestoreItem {
   sku: string;
@@ -27,7 +21,7 @@ interface FirestoreItem {
 
 interface LoadPurchaseOrderResult {
   po: PurchaseOrder | null;
-  items: SkuData[];
+  items: SkuDataWithId[];
   overallStats: OverallStats;
   accountStats: AccountStat[];
 }
@@ -98,10 +92,11 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
   if (poSnapshot.exists()) {
     const data = poSnapshot.data();
     po = {
+      id: poId,
       name: data.name,
       month: data.month,
       year: data.year,
-      status: data.status,
+      status: data.status as POStatus,
       createdAt: data.createdAt?.toDate?.() || new Date(),
       updatedAt: data.updatedAt?.toDate?.() || new Date(),
     };
@@ -111,16 +106,19 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
   const itemsCollectionRef = collection(db, 'purchaseOrders', poId, 'items');
   const itemsSnapshot = await getDocs(itemsCollectionRef);
   
-  const items: SkuData[] = itemsSnapshot.docs.map((docSnapshot) => {
-    const data = docSnapshot.data() as FirestoreItem;
+  const items: SkuDataWithId[] = itemsSnapshot.docs.map((docSnapshot) => {
+    const data = docSnapshot.data() as FirestoreItem & { invoices?: string[] };
     return {
+      id: docSnapshot.id,
       sku: data.sku,
       account: data.accountId, // Map accountId from Firestore to account field
       category: mapCategory(data.category),
       turnover: data.turnoverDays,
       investment: data.investment,
       profit: data.profit,
+      units: data.units,
       status: data.status,
+      invoices: data.invoices || [],
     };
   });
 
@@ -136,4 +134,108 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
     overallStats,
     accountStats,
   };
+}
+
+// Load all POs for the selector dropdown
+export async function loadAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+  const posCollectionRef = collection(db, 'purchaseOrders');
+  const posSnapshot = await getDocs(posCollectionRef);
+  
+  const purchaseOrders: PurchaseOrder[] = posSnapshot.docs.map((docSnapshot) => {
+    const data = docSnapshot.data();
+    return {
+      id: docSnapshot.id,
+      name: data.name,
+      month: data.month,
+      year: data.year,
+      status: data.status as POStatus,
+      createdAt: data.createdAt?.toDate?.() || new Date(),
+      updatedAt: data.updatedAt?.toDate?.() || new Date(),
+    };
+  });
+  
+  // Sort by createdAt descending (newest first)
+  return purchaseOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+// Advance PO status to next status (forward only)
+export async function advancePOStatus(poId: string, currentStatus: POStatus): Promise<POStatus | null> {
+  const currentIndex = PO_STATUS_ORDER.indexOf(currentStatus);
+  
+  // Cannot advance if already at final status
+  if (currentIndex === -1 || currentIndex >= PO_STATUS_ORDER.length - 1) {
+    return null;
+  }
+  
+  const nextStatus = PO_STATUS_ORDER[currentIndex + 1];
+  
+  const poDocRef = doc(db, 'purchaseOrders', poId);
+  await updateDoc(poDocRef, {
+    status: nextStatus,
+    updatedAt: new Date(),
+  });
+  
+  return nextStatus;
+}
+
+// Update item status (Unprocessed -> Processed or Excluded only)
+export async function updateItemStatus(
+  poId: string, 
+  itemId: string, 
+  currentStatus: ItemStatus, 
+  newStatus: ItemStatus
+): Promise<boolean> {
+  // Only allow transitions from Unprocessed
+  if (currentStatus !== 'Unprocessed') {
+    return false;
+  }
+  
+  // Only allow transitioning to Processed or Excluded
+  if (newStatus !== 'Processed' && newStatus !== 'Excluded') {
+    return false;
+  }
+  
+  const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+  await updateDoc(itemDocRef, {
+    status: newStatus,
+  });
+  
+  return true;
+}
+
+// Upload invoice file to Firebase Storage
+export async function uploadInvoice(
+  poId: string, 
+  itemId: string, 
+  file: File
+): Promise<string> {
+  const filePath = `po-invoices/${poId}/${itemId}/${file.name}`;
+  const storageRef = ref(storage, filePath);
+  
+  await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(storageRef);
+  
+  // Add URL to item's invoices array
+  const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+  await updateDoc(itemDocRef, {
+    invoices: arrayUnion(downloadUrl),
+  });
+  
+  return downloadUrl;
+}
+
+// Get all invoice URLs for an item
+export async function getItemInvoices(poId: string, itemId: string): Promise<string[]> {
+  const folderPath = `po-invoices/${poId}/${itemId}`;
+  const folderRef = ref(storage, folderPath);
+  
+  try {
+    const result = await listAll(folderRef);
+    const urls = await Promise.all(
+      result.items.map((itemRef) => getDownloadURL(itemRef))
+    );
+    return urls;
+  } catch {
+    return [];
+  }
 }
