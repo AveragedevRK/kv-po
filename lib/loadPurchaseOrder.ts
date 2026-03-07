@@ -258,29 +258,47 @@ export async function getItemInvoices(poId: string, itemId: string): Promise<str
   }
 }
 
+// Fallback access codes (used when Firestore document doesn't exist)
+const FALLBACK_CODES = {
+  editCode: 'KV10X',
+  adminCode: 'sudo KV',
+};
+
 // Validate PIN code against systemConfig/accessCodes in Firestore
 export async function validateAccessCode(pin: string): Promise<AccessMode | null> {
   try {
     const configDocRef = doc(db, 'systemConfig', 'accessCodes');
     const configSnapshot = await getDoc(configDocRef);
     
-    if (!configSnapshot.exists()) {
-      return null;
+    let editCode = FALLBACK_CODES.editCode;
+    let adminCode = FALLBACK_CODES.adminCode;
+    
+    if (configSnapshot.exists()) {
+      const data = configSnapshot.data();
+      editCode = data.editCode || editCode;
+      adminCode = data.adminCode || adminCode;
     }
     
-    const data = configSnapshot.data();
-    
-    if (pin === data.adminCode) {
+    if (pin === adminCode) {
       return 'ADMIN';
     }
     
-    if (pin === data.editCode) {
+    if (pin === editCode) {
       return 'EDIT';
     }
     
     return null;
   } catch (error) {
     console.error('Error validating access code:', error);
+    
+    // Fallback to hardcoded codes if Firestore fails
+    if (pin === FALLBACK_CODES.adminCode) {
+      return 'ADMIN';
+    }
+    if (pin === FALLBACK_CODES.editCode) {
+      return 'EDIT';
+    }
+    
     return null;
   }
 }
