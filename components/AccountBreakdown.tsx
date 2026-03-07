@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { AccountStat } from '../types';
+import { AccountStat, SkuDataWithId } from '../types';
 import { TrendingUp, Clock, DollarSign, ArrowUp, ArrowDown } from 'lucide-react';
+import { MiniRadialChart, calculateAccountProgress } from './DetailedProgressDrawer';
 
 interface AccountBreakdownProps {
   accounts: AccountStat[];
+  items?: SkuDataWithId[]; // For calculating progress
 }
 
 type SortKey = 'investment' | 'profit' | 'turnover' | 'roi';
 
-const AccountBreakdown: React.FC<AccountBreakdownProps> = ({ accounts }) => {
+const AccountBreakdown: React.FC<AccountBreakdownProps> = ({ accounts, items = [] }) => {
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'investment', direction: 'desc' });
 
   const handleSort = (key: SortKey) => {
@@ -81,6 +83,7 @@ const AccountBreakdown: React.FC<AccountBreakdownProps> = ({ accounts }) => {
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {sortedAccounts.map((account) => {
           const roi = ((account.profit / account.investment) * 100);
+          const progress = items.length > 0 ? calculateAccountProgress(items, account.name) : null;
           return (
             <div 
               key={account.name} 
@@ -120,12 +123,22 @@ const AccountBreakdown: React.FC<AccountBreakdownProps> = ({ accounts }) => {
                 </div>
               </div>
 
-              {/* Footer / ROI */}
+              {/* Footer / ROI + Progress */}
               <div className="pt-2 sm:pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400">ROI</span>
-                <span className={`text-xs sm:text-sm font-bold ${roi >= 0 ? 'text-brand-600 dark:text-brand-400' : 'text-red-500'}`}>
-                  {roi.toFixed(1)}%
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400">ROI</span>
+                  <span className={`text-xs sm:text-sm font-bold ${roi >= 0 ? 'text-brand-600 dark:text-brand-400' : 'text-red-500'}`}>
+                    {roi.toFixed(1)}%
+                  </span>
+                </div>
+                {progress && (
+                  <div className="flex items-center gap-1.5">
+                    <MiniRadialChart percentage={progress.investmentProgress} size={28} />
+                    <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">
+                      {progress.processedSKUs}/{progress.totalSKUs}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );

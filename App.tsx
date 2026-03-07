@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Sun, Moon, Download, Code } from 'lucide-react';
+import { FileText, Sun, Moon, Download, Code, BarChart3 } from 'lucide-react';
 import SummaryCards from './components/SummaryCards';
 import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
 import POSelector from './components/POSelector';
 import ItemDrawer from './components/ItemDrawer';
 import PinModal from './components/PinModal';
+import DetailedProgressDrawer from './components/DetailedProgressDrawer';
 import PageSkeleton, { HeaderSkeleton } from './components/SkeletonLoader';
 import { AccessProvider } from './context/AccessContext';
 import { loadPurchaseOrder, loadAllPurchaseOrders, advancePOStatus } from './lib/loadPurchaseOrder';
@@ -28,6 +29,7 @@ const App: React.FC = () => {
   // Drawer state
   const [selectedItem, setSelectedItem] = useState<SkuDataWithId | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isProgressDrawerOpen, setIsProgressDrawerOpen] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
@@ -291,13 +293,25 @@ const App: React.FC = () => {
           <>
             {/* Section: Overview */}
             <div className="mb-8 break-inside-avoid">
-              <h2 className={`text-lg font-semibold mb-4 transition-colors duration-200 ${isDarkMode ? 'text-brand-100' : 'text-gray-800'}`}>Overview</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className={`text-lg font-semibold transition-colors duration-200 ${isDarkMode ? 'text-brand-100' : 'text-gray-800'}`}>Overview</h2>
+                <button
+                  onClick={() => setIsProgressDrawerOpen(true)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 no-print
+                    ${isDarkMode 
+                      ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750 hover:text-brand-400 hover:border-brand-600' 
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300'}`}
+                >
+                  <BarChart3 size={14} />
+                  Detailed Progress
+                </button>
+              </div>
               <SummaryCards stats={overallStats} />
             </div>
 
             {/* Section: Account Breakdown */}
             <div className="mb-8 break-inside-avoid">
-              <AccountBreakdown accounts={accountStats} />
+              <AccountBreakdown accounts={accountStats} items={skuData} />
             </div>
 
             {/* Section: SKU Detail */}
@@ -324,6 +338,13 @@ const App: React.FC = () => {
       <PinModal 
         isOpen={isPinModalOpen} 
         onClose={() => setIsPinModalOpen(false)} 
+      />
+
+      {/* Detailed Progress Drawer */}
+      <DetailedProgressDrawer
+        isOpen={isProgressDrawerOpen}
+        onClose={() => setIsProgressDrawerOpen(false)}
+        items={skuData}
       />
 
       {/* Mobile Sticky Footer Actions */}
