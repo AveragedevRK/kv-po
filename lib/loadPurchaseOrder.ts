@@ -16,7 +16,7 @@ interface PurchaseOrder {
 
 interface FirestoreItem {
   sku: string;
-  account: string;
+  accountId: string;
   category: string;
   turnoverDays: number;
   investment: number;
@@ -115,7 +115,7 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
     const data = docSnapshot.data() as FirestoreItem;
     return {
       sku: data.sku,
-      account: data.account,
+      account: data.accountId, // Map accountId from Firestore to account field
       category: mapCategory(data.category),
       turnover: data.turnoverDays,
       investment: data.investment,
