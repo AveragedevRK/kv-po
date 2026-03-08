@@ -1,6 +1,22 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { AccessMode } from '../types';
 import { validateAccessCode } from '../lib/loadPurchaseOrder';
+
+const ACCESS_MODE_STORAGE_KEY = 'kv-po-access-mode';
+
+// Helper to get initial access mode from localStorage
+const getStoredAccessMode = (): AccessMode => {
+  if (typeof window === 'undefined') return 'VIEW';
+  try {
+    const stored = localStorage.getItem(ACCESS_MODE_STORAGE_KEY);
+    if (stored === 'ADMIN' || stored === 'EDIT' || stored === 'VIEW') {
+      return stored;
+    }
+  } catch {
+    // localStorage might not be available
+  }
+  return 'VIEW';
+};
 
 interface AccessContextType {
   accessMode: AccessMode;
@@ -19,7 +35,17 @@ interface AccessContextType {
 const AccessContext = createContext<AccessContextType | undefined>(undefined);
 
 export const AccessProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [accessMode, setAccessMode] = useState<AccessMode>('VIEW');
+  const [accessMode, setAccessModeState] = useState<AccessMode>(getStoredAccessMode);
+
+  // Persist access mode to localStorage whenever it changes
+  const setAccessMode = useCallback((mode: AccessMode) => {
+    setAccessModeState(mode);
+    try {
+      localStorage.setItem(ACCESS_MODE_STORAGE_KEY, mode);
+    } catch {
+      // localStorage might not be available
+    }
+  }, []);
 
   const validatePin = useCallback(async (pin: string): Promise<AccessMode | null> => {
     const result = await validateAccessCode(pin);
@@ -27,11 +53,11 @@ export const AccessProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setAccessMode(result);
     }
     return result;
-  }, []);
+  }, [setAccessMode]);
 
   const resetAccess = useCallback(() => {
     setAccessMode('VIEW');
-  }, []);
+  }, [setAccessMode]);
 
   // Derived permissions based on access mode
   // ADMIN: Can edit and save all fields (orderId, supplier, subtotal, misc, total, units)
