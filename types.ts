@@ -51,6 +51,7 @@ export interface OrderEntry {
   misc: number;
   total: number;
   units: number;
+  orderDate: string; // Format: "MM/DD/YYYY"
 }
 
 // Access mode types
