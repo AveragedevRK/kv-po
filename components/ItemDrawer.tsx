@@ -30,6 +30,30 @@ interface OrderCardProps {
   isSaving: boolean;
 }
 
+// Format date string to words (e.g., "3/9/2026" -> "March 9th, 2026")
+const formatDateToWords = (dateStr: string): string => {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return '';
+  
+  const month = parseInt(parts[0], 10);
+  const day = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+  
+  if (isNaN(month) || isNaN(day) || isNaN(year) || month < 1 || month > 12) return '';
+  
+  // Add ordinal suffix to day
+  const getOrdinal = (n: number): string => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  
+  return `${months[month - 1]} ${getOrdinal(day)}, ${year}`;
+};
+
 const OrderCard: React.FC<OrderCardProps> = ({
   order,
   index,
@@ -104,6 +128,69 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
       {/* Order Fields */}
       <div className="space-y-2">
+        {/* Order Date */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Date</span>
+          {isEditing && canEditNumericFields ? (
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={displayOrder.orderDate?.split('/')[0] || ''}
+                  onChange={(e) => {
+                    const parts = (displayOrder.orderDate || '//').split('/');
+                    parts[0] = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    onFieldChange('orderDate', parts.join('/'));
+                  }}
+                  placeholder="MM"
+                  className="w-10 px-1.5 py-1 text-xs sm:text-sm text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <span className="text-gray-400 dark:text-gray-500 mx-0.5">/</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={displayOrder.orderDate?.split('/')[1] || ''}
+                  onChange={(e) => {
+                    const parts = (displayOrder.orderDate || '//').split('/');
+                    parts[1] = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    onFieldChange('orderDate', parts.join('/'));
+                  }}
+                  placeholder="DD"
+                  className="w-10 px-1.5 py-1 text-xs sm:text-sm text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <span className="text-gray-400 dark:text-gray-500 mx-0.5">/</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={displayOrder.orderDate?.split('/')[2] || ''}
+                  onChange={(e) => {
+                    const parts = (displayOrder.orderDate || '//').split('/');
+                    parts[2] = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    onFieldChange('orderDate', parts.join('/'));
+                  }}
+                  placeholder="YYYY"
+                  className="w-14 px-1.5 py-1 text-xs sm:text-sm text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 italic truncate">
+                {formatDateToWords(displayOrder.orderDate || '')}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                {displayOrder.orderDate || '-'}
+              </span>
+              {displayOrder.orderDate && (
+                <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 italic">
+                  {formatDateToWords(displayOrder.orderDate)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Order ID - ADMIN only */}
         {canEditAdminFields && (
           <div className="flex items-center gap-2">
@@ -308,7 +395,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     if (!editingOrder) return;
     setEditingOrder({
       ...editingOrder,
-      [field]: field === 'orderId' || field === 'supplier' ? value : Number(value) || 0,
+      [field]: field === 'orderId' || field === 'supplier' || field === 'orderDate' ? value : Number(value) || 0,
     });
   };
 
@@ -359,6 +446,15 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     }
   };
 
+  // Helper to get current date as MM/DD/YYYY string
+  const getCurrentDateString = (): string => {
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString();
+    const day = now.getDate().toString();
+    const year = now.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
   const handleAddOrder = async () => {
     if (!item || !canSave) return;
     
@@ -369,6 +465,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
       misc: 0,
       total: 0,
       units: 0,
+      orderDate: getCurrentDateString(),
     };
     
     const newOrders = [...localOrders, newOrder];

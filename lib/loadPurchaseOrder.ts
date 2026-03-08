@@ -6,6 +6,15 @@ import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatu
 // PO ID constant for now
 const DEFAULT_PO_ID = 'PO-2026-001';
 
+// Helper to get current date as MM/DD/YYYY string
+function getCurrentDateString(): string {
+  const now = new Date();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const year = now.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
 
 
 interface FirestoreItem {
@@ -121,8 +130,11 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
     // Handle orders array - support both new structure and legacy single order
     let orders: OrderEntry[] = [];
     if (data.orders && Array.isArray(data.orders) && data.orders.length > 0) {
-      // New structure: use orders array directly
-      orders = data.orders;
+      // New structure: use orders array directly, ensuring orderDate exists
+      orders = data.orders.map(order => ({
+        ...order,
+        orderDate: order.orderDate || getCurrentDateString(),
+      }));
     } else if (data.orderId || data.supplier || data.subtotal || data.misc || data.total) {
       // Legacy structure: convert single order to array
       orders = [{
@@ -132,6 +144,7 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
         misc: data.misc || 0,
         total: data.total || 0,
         units: data.units || 0,
+        orderDate: getCurrentDateString(),
       }];
     }
     
