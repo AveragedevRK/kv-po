@@ -5,10 +5,8 @@ import AccountBreakdown from './components/AccountBreakdown';
 import SkuTable from './components/SkuTable';
 import POSelector from './components/POSelector';
 import ItemDrawer from './components/ItemDrawer';
-import PinModal from './components/PinModal';
 import DetailedProgressDrawer from './components/DetailedProgressDrawer';
 import PageSkeleton, { HeaderSkeleton } from './components/SkeletonLoader';
-import { AccessProvider } from './context/AccessContext';
 import { loadPurchaseOrder, loadAllPurchaseOrders, advancePOStatus } from './lib/loadPurchaseOrder';
 import { OverallStats, AccountStat, PurchaseOrder, SkuDataWithId } from './types';
 import { initializeTelemetry } from './telemetry';
@@ -31,7 +29,6 @@ const App: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isProgressDrawerOpen, setIsProgressDrawerOpen] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -189,7 +186,6 @@ const App: React.FC = () => {
   const LOGO_URL = "https://s3-eu-west-1.amazonaws.com/tpd/logos/6169bf2b0bd1fb001d4d3161/0x0.png";
 
   return (
-    <AccessProvider>
     <div className={`min-h-screen font-sans transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-24 sm:pb-20 relative overflow-x-hidden print:bg-white print:text-black`}>
       {/* Background Logo */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.015]">
@@ -223,7 +219,6 @@ const App: React.FC = () => {
                         selectedPO={selectedPO}
                         onSelect={handlePOSelect}
                         onAdvanceStatus={handleAdvanceStatus}
-                        onRequestAccess={() => setIsPinModalOpen(true)}
                         isLoading={isPOsLoading}
                         isAdvancing={isAdvancing}
                       />
@@ -334,12 +329,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* PIN Modal for Access Request */}
-      <PinModal 
-        isOpen={isPinModalOpen} 
-        onClose={() => setIsPinModalOpen(false)} 
-      />
-
       {/* Detailed Progress Drawer */}
       <DetailedProgressDrawer
         isOpen={isProgressDrawerOpen}
@@ -370,7 +359,6 @@ const App: React.FC = () => {
       </div>
 
     </div>
-    </AccessProvider>
   );
 };
 

@@ -54,9 +54,6 @@ export interface OrderEntry {
   orderDate: string; // Format: "MM/DD/YYYY"
 }
 
-// Access mode types
-export type AccessMode = 'VIEW' | 'EDIT' | 'ADMIN';
-
 export interface AccountStat {
   name: string;
   investment: number;

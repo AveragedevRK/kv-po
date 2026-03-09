@@ -39,7 +39,8 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
       const lowerTerm = searchTerm.toLowerCase();
       processed = processed.filter(item => 
         item.sku.toLowerCase().includes(lowerTerm) || 
-        item.account.toLowerCase().includes(lowerTerm)
+        item.account.toLowerCase().includes(lowerTerm) ||
+        (item.asin && item.asin.toLowerCase().includes(lowerTerm))
       );
     }
 
@@ -146,6 +147,9 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
               <th scope="col" className="px-6 py-3 cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('sku')}>
                 SKU <SortIcon column="sku" />
               </th>
+              <th scope="col" className="px-6 py-3">
+                ASIN
+              </th>
               <th scope="col" className="px-6 py-3 cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('account')}>
                 Account <SortIcon column="account" />
               </th>
@@ -175,6 +179,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                   onClick={() => onRowClick?.(item)}
                 >
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.sku}</td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{item.asin || '-'}</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{item.account}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -204,7 +209,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                   No SKUs found matching your criteria.
                 </td>
               </tr>
