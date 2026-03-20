@@ -27,6 +27,8 @@ interface FirestoreItem {
   units: number;
   status: string;
   asin?: string;
+  comments?: string;
+  rejectionReason?: string;
   // Orders array (new structure)
   orders?: OrderEntry[];
   // Legacy single order fields (for migration)
@@ -159,6 +161,8 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
       units: data.units,
       status: data.status,
       asin: data.asin,
+      comments: data.comments || '',
+      rejectionReason: data.rejectionReason || '',
       invoices: data.invoices || [],
       orders,
     };
@@ -279,6 +283,22 @@ export async function getItemInvoices(poId: string, itemId: string): Promise<str
     return urls;
   } catch {
     return [];
+  }
+}
+
+// Update comments and/or rejectionReason for an item
+export async function updateItemFields(
+  poId: string,
+  itemId: string,
+  fields: { comments?: string; rejectionReason?: string }
+): Promise<boolean> {
+  try {
+    const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+    await updateDoc(itemDocRef, fields);
+    return true;
+  } catch (error) {
+    console.error('Error updating item fields:', error);
+    return false;
   }
 }
 

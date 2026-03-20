@@ -38,9 +38,11 @@ export type ItemStatus = 'Awaiting Payment' | 'Partially Processed' | 'Processed
 export interface SkuDataWithId extends SkuData {
   id: string;
   units: number;
-  asin?: string; // ASIN - only visible to ADMIN, not editable
+  asin?: string;
   invoices?: string[];
   orders: OrderEntry[]; // Multiple orders per item
+  comments?: string;
+  rejectionReason?: string;
 }
 
 // Order entry for items (multiple orders per item)

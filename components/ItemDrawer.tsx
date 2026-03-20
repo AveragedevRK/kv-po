@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle } from 'lucide-react';
+import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, Save } from 'lucide-react';
 import { SkuDataWithId, SkuCategory, ItemStatus, OrderEntry } from '../types';
-import { updateItemStatus, updateItemOrders } from '../lib/loadPurchaseOrder';
+import { updateItemStatus, updateItemOrders, updateItemFields } from '../lib/loadPurchaseOrder';
 import InvoiceSection from './InvoiceSection';
 
 interface ItemDrawerProps {
@@ -289,15 +289,29 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderEntry | null>(null);
   
-  // Reset local orders when item changes
+  // Comments and rejection reason state
+  const [localComments, setLocalComments] = useState('');
+  const [localRejectionReason, setLocalRejectionReason] = useState('');
+  const [isSavingComments, setIsSavingComments] = useState(false);
+  const [isSavingRejection, setIsSavingRejection] = useState(false);
+  const [commentsSaved, setCommentsSaved] = useState(false);
+  const [rejectionSaved, setRejectionSaved] = useState(false);
+  
+  // Reset local state when item changes
   useEffect(() => {
     if (item) {
       setLocalOrders([...item.orders]);
+      setLocalComments(item.comments || '');
+      setLocalRejectionReason(item.rejectionReason || '');
     } else {
       setLocalOrders([]);
+      setLocalComments('');
+      setLocalRejectionReason('');
     }
     setEditingIndex(null);
     setEditingOrder(null);
+    setCommentsSaved(false);
+    setRejectionSaved(false);
   }, [item]);
 
   // Close on outside click
@@ -455,6 +469,40 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
       console.error('Error adding order:', error);
     } finally {
       setIsSavingOrders(false);
+    }
+  };
+
+  const handleSaveComments = async () => {
+    if (!item) return;
+    setIsSavingComments(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { comments: localComments });
+      if (success) {
+        setCommentsSaved(true);
+        setTimeout(() => setCommentsSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving comments:', error);
+    } finally {
+      setIsSavingComments(false);
+    }
+  };
+
+  const handleSaveRejectionReason = async () => {
+    if (!item) return;
+    setIsSavingRejection(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { rejectionReason: localRejectionReason });
+      if (success) {
+        setRejectionSaved(true);
+        setTimeout(() => setRejectionSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving rejection reason:', error);
+    } finally {
+      setIsSavingRejection(false);
     }
   };
 
@@ -685,6 +733,44 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
             )}
           </div>
 
+          {/* Rejection Reason - only shown when status is Excluded */}
+          {item.status === 'Excluded' && (
+            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+              <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                <h4 className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5 sm:gap-2">
+                  <ShieldAlert size={14} className="sm:w-4 sm:h-4" />
+                  Rejection Reason
+                </h4>
+                <button
+                  onClick={handleSaveRejectionReason}
+                  disabled={isSavingRejection}
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    ${rejectionSaved
+                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                      : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isSavingRejection ? (
+                    <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                  ) : rejectionSaved ? (
+                    <Check size={10} className="sm:w-3 sm:h-3" />
+                  ) : (
+                    <Save size={10} className="sm:w-3 sm:h-3" />
+                  )}
+                  {rejectionSaved ? 'Saved' : 'Save'}
+                </button>
+              </div>
+              <textarea
+                value={localRejectionReason}
+                onChange={(e) => setLocalRejectionReason(e.target.value)}
+                placeholder="Enter reason for excluding this item..."
+                rows={2}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-400 dark:focus:ring-red-600 resize-none"
+              />
+            </div>
+          )}
+
           {/* Invoice Section */}
           <InvoiceSection
             itemId={item.id}
@@ -692,6 +778,42 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
             invoices={item.invoices || []}
             onInvoiceUploaded={onItemUpdated}
           />
+
+          {/* Comments Section - always visible */}
+          <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+            <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
+                <MessageSquare size={14} className="sm:w-4 sm:h-4" />
+                Comments
+              </h4>
+              <button
+                onClick={handleSaveComments}
+                disabled={isSavingComments}
+                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                  ${commentsSaved
+                    ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                    : 'bg-brand-50 border-brand-200 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSavingComments ? (
+                  <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                ) : commentsSaved ? (
+                  <Check size={10} className="sm:w-3 sm:h-3" />
+                ) : (
+                  <Save size={10} className="sm:w-3 sm:h-3" />
+                )}
+                {commentsSaved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+            <textarea
+              value={localComments}
+              onChange={(e) => setLocalComments(e.target.value)}
+              placeholder="Add comments about this item..."
+              rows={3}
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-400 dark:focus:ring-brand-600 resize-none"
+            />
+          </div>
         </div>
       </div>
     </>
