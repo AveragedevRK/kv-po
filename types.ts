@@ -43,6 +43,7 @@ export interface SkuDataWithId extends SkuData {
   orders: OrderEntry[]; // Multiple orders per item
   comments?: string;
   rejectionReason?: string;
+  holdReason?: string;
 }
 
 // Order entry for items (multiple orders per item)

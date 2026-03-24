@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, Save } from 'lucide-react';
+import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, PauseCircle, Save } from 'lucide-react';
 import { SkuDataWithId, SkuCategory, ItemStatus, OrderEntry } from '../types';
 import { updateItemStatus, updateItemOrders, updateItemFields } from '../lib/loadPurchaseOrder';
 import InvoiceSection from './InvoiceSection';
@@ -289,29 +289,40 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderEntry | null>(null);
   
-  // Comments and rejection reason state
+  // Local status tracking for immediate UI updates
+  const [localStatus, setLocalStatus] = useState<string>('');
+  
+  // Comments, rejection reason, and hold reason state
   const [localComments, setLocalComments] = useState('');
   const [localRejectionReason, setLocalRejectionReason] = useState('');
+  const [localHoldReason, setLocalHoldReason] = useState('');
   const [isSavingComments, setIsSavingComments] = useState(false);
   const [isSavingRejection, setIsSavingRejection] = useState(false);
+  const [isSavingHold, setIsSavingHold] = useState(false);
   const [commentsSaved, setCommentsSaved] = useState(false);
   const [rejectionSaved, setRejectionSaved] = useState(false);
+  const [holdSaved, setHoldSaved] = useState(false);
   
   // Reset local state when item changes
   useEffect(() => {
     if (item) {
       setLocalOrders([...item.orders]);
+      setLocalStatus(item.status);
       setLocalComments(item.comments || '');
       setLocalRejectionReason(item.rejectionReason || '');
+      setLocalHoldReason(item.holdReason || '');
     } else {
       setLocalOrders([]);
+      setLocalStatus('');
       setLocalComments('');
       setLocalRejectionReason('');
+      setLocalHoldReason('');
     }
     setEditingIndex(null);
     setEditingOrder(null);
     setCommentsSaved(false);
     setRejectionSaved(false);
+    setHoldSaved(false);
   }, [item]);
 
   // Close on outside click
@@ -356,16 +367,22 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   }, [isOpen, onClose, editingIndex]);
 
   const handleStatusChange = async (newStatus: ItemStatus) => {
-    if (!item || item.status !== 'Awaiting Payment') return;
+    if (!item || localStatus !== 'Awaiting Payment') return;
     
+    // Update local status immediately so UI reflects the change
+    setLocalStatus(newStatus);
     setIsUpdating(true);
     try {
       const success = await updateItemStatus(poId, item.id, item.status as ItemStatus, newStatus);
       if (success) {
         onItemUpdated();
+      } else {
+        // Revert on failure
+        setLocalStatus(item.status);
       }
     } catch (error) {
       console.error('Error updating item status:', error);
+      setLocalStatus(item.status);
     } finally {
       setIsUpdating(false);
     }
@@ -506,6 +523,23 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     }
   };
 
+  const handleSaveHoldReason = async () => {
+    if (!item) return;
+    setIsSavingHold(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { holdReason: localHoldReason });
+      if (success) {
+        setHoldSaved(true);
+        setTimeout(() => setHoldSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving hold reason:', error);
+    } finally {
+      setIsSavingHold(false);
+    }
+  };
+
   const getCategoryLabel = (category: SkuCategory) => {
     switch (category) {
       case SkuCategory.DISCONTINUED_FBM:
@@ -594,8 +628,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
               <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(item.category)}`}>
                 {getCategoryLabel(item.category)}
               </span>
-              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(item.status)}`}>
-                {item.status}
+              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(localStatus)}`}>
+                {localStatus}
               </span>
             </div>
           </div>
@@ -695,7 +729,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
           {/* Status Controls */}
           <div className="mb-4 sm:mb-6">
             <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Update Status</h4>
-            {item.status === 'Awaiting Payment' ? (
+            {localStatus === 'Awaiting Payment' ? (
               <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                 <button
                   onClick={() => handleStatusChange('Partially Processed')}
@@ -740,13 +774,13 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
               </div>
             ) : (
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
-                Status cannot be changed once set to {item.status}.
+                Status cannot be changed once set to {localStatus}.
               </p>
             )}
           </div>
 
           {/* Rejection Reason - only shown when status is Excluded */}
-          {item.status === 'Excluded' && (
+          {localStatus === 'Excluded' && (
             <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
               <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
                 <h4 className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5 sm:gap-2">
@@ -779,6 +813,44 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                 placeholder="Enter reason for excluding this item..."
                 rows={2}
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-400 dark:focus:ring-red-600 resize-none"
+              />
+            </div>
+          )}
+
+          {/* Hold Reason - only shown when status is Hold */}
+          {localStatus === 'Hold' && (
+            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+              <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                <h4 className="text-xs sm:text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 sm:gap-2">
+                  <PauseCircle size={14} className="sm:w-4 sm:h-4" />
+                  Hold Reason
+                </h4>
+                <button
+                  onClick={handleSaveHoldReason}
+                  disabled={isSavingHold}
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    ${holdSaved
+                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                      : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isSavingHold ? (
+                    <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                  ) : holdSaved ? (
+                    <Check size={10} className="sm:w-3 sm:h-3" />
+                  ) : (
+                    <Save size={10} className="sm:w-3 sm:h-3" />
+                  )}
+                  {holdSaved ? 'Saved' : 'Save'}
+                </button>
+              </div>
+              <textarea
+                value={localHoldReason}
+                onChange={(e) => setLocalHoldReason(e.target.value)}
+                placeholder="Enter reason for putting this item on hold..."
+                rows={2}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:focus:ring-amber-600 resize-none"
               />
             </div>
           )}
