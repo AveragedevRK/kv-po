@@ -237,7 +237,7 @@ export async function updateItemStatus(
   }
   
   // Only allow transitioning to valid statuses
-  if (newStatus !== 'Partially Processed' && newStatus !== 'Processed' && newStatus !== 'Excluded') {
+  if (newStatus !== 'Partially Processed' && newStatus !== 'Processed' && newStatus !== 'Excluded' && newStatus !== 'Hold') {
     return false;
   }
   

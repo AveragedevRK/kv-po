@@ -542,6 +542,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Excluded':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'Hold':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
@@ -694,7 +696,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
           <div className="mb-4 sm:mb-6">
             <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Update Status</h4>
             {item.status === 'Awaiting Payment' ? (
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                 <button
                   onClick={() => handleStatusChange('Partially Processed')}
                   disabled={isUpdating}
@@ -714,6 +716,16 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                     disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Done'}
+                </button>
+                <button
+                  onClick={() => handleStatusChange('Hold')}
+                  disabled={isUpdating}
+                  className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 
+                    dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Hold'}
                 </button>
                 <button
                   onClick={() => handleStatusChange('Excluded')}
