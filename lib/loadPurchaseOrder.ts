@@ -251,6 +251,24 @@ export async function updateItemStatus(
   return true;
 }
 
+// Force update item status to any valid status (override, no guards)
+export async function forceUpdateItemStatus(
+  poId: string,
+  itemId: string,
+  newStatus: ItemStatus
+): Promise<boolean> {
+  try {
+    const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+    await updateDoc(itemDocRef, {
+      status: newStatus,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error force updating item status:', error);
+    return false;
+  }
+}
+
 // Upload invoice file to Firebase Storage
 export async function uploadInvoice(
   poId: string, 

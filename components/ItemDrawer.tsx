@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, PauseCircle, Save } from 'lucide-react';
+import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, PauseCircle, Save, ChevronDown } from 'lucide-react';
 import { SkuDataWithId, SkuCategory, ItemStatus, OrderEntry } from '../types';
-import { updateItemStatus, updateItemOrders, updateItemFields } from '../lib/loadPurchaseOrder';
+import { updateItemStatus, updateItemOrders, updateItemFields, forceUpdateItemStatus } from '../lib/loadPurchaseOrder';
 import InvoiceSection from './InvoiceSection';
 
 interface ItemDrawerProps {
@@ -291,6 +291,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   
   // Local status tracking for immediate UI updates
   const [localStatus, setLocalStatus] = useState<string>('');
+  const [showStatusOverride, setShowStatusOverride] = useState(false);
+  const statusOverrideRef = useRef<HTMLDivElement>(null);
   
   // Comments, rejection reason, and hold reason state
   const [localComments, setLocalComments] = useState('');
@@ -323,7 +325,21 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     setCommentsSaved(false);
     setRejectionSaved(false);
     setHoldSaved(false);
+    setShowStatusOverride(false);
   }, [item]);
+
+  // Close status override dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (statusOverrideRef.current && !statusOverrideRef.current.contains(e.target as Node)) {
+        setShowStatusOverride(false);
+      }
+    };
+    if (showStatusOverride) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showStatusOverride]);
 
   // Close on outside click
   useEffect(() => {
@@ -383,6 +399,28 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     } catch (error) {
       console.error('Error updating item status:', error);
       setLocalStatus(item.status);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleForceStatusChange = async (newStatus: ItemStatus) => {
+    if (!item || newStatus === localStatus) return;
+    
+    const previousStatus = localStatus;
+    setLocalStatus(newStatus);
+    setShowStatusOverride(false);
+    setIsUpdating(true);
+    try {
+      const success = await forceUpdateItemStatus(poId, item.id, newStatus);
+      if (success) {
+        onItemUpdated();
+      } else {
+        setLocalStatus(previousStatus);
+      }
+    } catch (error) {
+      console.error('Error force updating status:', error);
+      setLocalStatus(previousStatus);
     } finally {
       setIsUpdating(false);
     }
@@ -628,9 +666,42 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
               <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(item.category)}`}>
                 {getCategoryLabel(item.category)}
               </span>
-              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(localStatus)}`}>
-                {localStatus}
-              </span>
+              <div className="relative" ref={statusOverrideRef}>
+                <button
+                  onClick={() => setShowStatusOverride(!showStatusOverride)}
+                  className={`inline-flex items-center gap-0.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium cursor-pointer transition-all duration-150 ${getStatusColor(localStatus)} hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600`}
+                >
+                  {localStatus}
+                  <ChevronDown size={10} className={`opacity-40 transition-transform duration-150 ${showStatusOverride ? 'rotate-180' : ''}`} />
+                </button>
+                {showStatusOverride && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                    {(['Awaiting Payment', 'Partially Processed', 'Processed', 'Hold', 'Excluded'] as ItemStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => handleForceStatusChange(status)}
+                        disabled={status === localStatus || isUpdating}
+                        className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors
+                          ${status === localStatus
+                            ? 'opacity-40 cursor-default bg-gray-50 dark:bg-gray-750'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-300'
+                          }
+                          disabled:cursor-not-allowed`}
+                      >
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          status === 'Awaiting Payment' ? 'bg-yellow-400' :
+                          status === 'Partially Processed' ? 'bg-orange-400' :
+                          status === 'Processed' ? 'bg-green-400' :
+                          status === 'Hold' ? 'bg-amber-400' :
+                          'bg-red-400'
+                        }`} />
+                        {status}
+                        {status === localStatus && <Check size={10} className="ml-auto opacity-60" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
