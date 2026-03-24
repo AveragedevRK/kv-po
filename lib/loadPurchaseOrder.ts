@@ -1,7 +1,7 @@
 import { db, storage } from './firebase';
 import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
-import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus, OrderEntry, AccessMode } from '../types';
+import { OverallStats, AccountStat, SkuData, SkuCategory, PurchaseOrder, POStatus, PO_STATUS_ORDER, SkuDataWithId, ItemStatus, OrderEntry } from '../types';
 
 // PO ID constant for now
 const DEFAULT_PO_ID = 'PO-2026-001';
@@ -27,6 +27,9 @@ interface FirestoreItem {
   units: number;
   status: string;
   asin?: string;
+  comments?: string;
+  rejectionReason?: string;
+  holdReason?: string;
   // Orders array (new structure)
   orders?: OrderEntry[];
   // Legacy single order fields (for migration)
@@ -159,6 +162,9 @@ export async function loadPurchaseOrder(poId: string = DEFAULT_PO_ID): Promise<L
       units: data.units,
       status: data.status,
       asin: data.asin,
+      comments: data.comments || '',
+      rejectionReason: data.rejectionReason || '',
+      holdReason: data.holdReason || '',
       invoices: data.invoices || [],
       orders,
     };
@@ -233,7 +239,7 @@ export async function updateItemStatus(
   }
   
   // Only allow transitioning to valid statuses
-  if (newStatus !== 'Partially Processed' && newStatus !== 'Processed' && newStatus !== 'Excluded') {
+  if (newStatus !== 'Partially Processed' && newStatus !== 'Processed' && newStatus !== 'Excluded' && newStatus !== 'Hold') {
     return false;
   }
   
@@ -243,6 +249,24 @@ export async function updateItemStatus(
   });
   
   return true;
+}
+
+// Force update item status to any valid status (override, no guards)
+export async function forceUpdateItemStatus(
+  poId: string,
+  itemId: string,
+  newStatus: ItemStatus
+): Promise<boolean> {
+  try {
+    const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+    await updateDoc(itemDocRef, {
+      status: newStatus,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error force updating item status:', error);
+    return false;
+  }
 }
 
 // Upload invoice file to Firebase Storage
@@ -282,63 +306,28 @@ export async function getItemInvoices(poId: string, itemId: string): Promise<str
   }
 }
 
-// Fallback access codes (used when Firestore document doesn't exist)
-const FALLBACK_CODES = {
-  editCode: 'KV10X',
-  adminCode: 'sudo KV',
-};
-
-// Validate PIN code against systemConfig/accessCodes in Firestore
-export async function validateAccessCode(pin: string): Promise<AccessMode | null> {
+// Update comments and/or rejectionReason for an item
+export async function updateItemFields(
+  poId: string,
+  itemId: string,
+  fields: { comments?: string; rejectionReason?: string; holdReason?: string }
+): Promise<boolean> {
   try {
-    const configDocRef = doc(db, 'systemConfig', 'accessCodes');
-    const configSnapshot = await getDoc(configDocRef);
-    
-    let editCode = FALLBACK_CODES.editCode;
-    let adminCode = FALLBACK_CODES.adminCode;
-    
-    if (configSnapshot.exists()) {
-      const data = configSnapshot.data();
-      editCode = data.editCode || editCode;
-      adminCode = data.adminCode || adminCode;
-    }
-    
-    if (pin === adminCode) {
-      return 'ADMIN';
-    }
-    
-    if (pin === editCode) {
-      return 'EDIT';
-    }
-    
-    return null;
+    const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
+    await updateDoc(itemDocRef, fields);
+    return true;
   } catch (error) {
-    console.error('Error validating access code:', error);
-    
-    // Fallback to hardcoded codes if Firestore fails
-    if (pin === FALLBACK_CODES.adminCode) {
-      return 'ADMIN';
-    }
-    if (pin === FALLBACK_CODES.editCode) {
-      return 'EDIT';
-    }
-    
-    return null;
+    console.error('Error updating item fields:', error);
+    return false;
   }
 }
 
-// Update orders array for an item (ADMIN only)
+// Update orders array for an item
 export async function updateItemOrders(
   poId: string,
   itemId: string,
-  orders: OrderEntry[],
-  accessMode: AccessMode
+  orders: OrderEntry[]
 ): Promise<boolean> {
-  // Only ADMIN can write to Firestore
-  if (accessMode !== 'ADMIN') {
-    return false;
-  }
-  
   try {
     const itemDocRef = doc(db, 'purchaseOrders', poId, 'items', itemId);
     await updateDoc(itemDocRef, {

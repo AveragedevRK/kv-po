@@ -1,69 +1,121 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, ArrowUp, ArrowDown } from 'lucide-react';
-import { SkuDataWithId, SkuCategory } from '../types';
+import { SkuDataWithId, SkuCategory, ItemStatus } from '../types';
 
 interface SkuTableProps {
   data: SkuDataWithId[];
   onRowClick?: (item: SkuDataWithId) => void;
 }
 
+type StatusFilter = 'All' | ItemStatus;
+
+const STATUS_FILTERS: { value: StatusFilter; label: string; dotColor: string; activeBg: string; activeText: string; activeBorder: string }[] = [
+  { value: 'All', label: 'All', dotColor: 'bg-gray-400', activeBg: 'bg-gray-800 dark:bg-gray-200', activeText: 'text-white dark:text-gray-900', activeBorder: 'border-gray-800 dark:border-gray-200' },
+  { value: 'Awaiting Payment', label: 'Awaiting', dotColor: 'bg-yellow-500', activeBg: 'bg-yellow-500 dark:bg-yellow-500', activeText: 'text-white dark:text-white', activeBorder: 'border-yellow-500 dark:border-yellow-500' },
+  { value: 'Partially Processed', label: 'Partial', dotColor: 'bg-orange-500', activeBg: 'bg-orange-500 dark:bg-orange-500', activeText: 'text-white dark:text-white', activeBorder: 'border-orange-500 dark:border-orange-500' },
+  { value: 'Processed', label: 'Processed', dotColor: 'bg-green-500', activeBg: 'bg-green-500 dark:bg-green-500', activeText: 'text-white dark:text-white', activeBorder: 'border-green-500 dark:border-green-500' },
+  { value: 'Hold', label: 'Hold', dotColor: 'bg-amber-500', activeBg: 'bg-amber-500 dark:bg-amber-500', activeText: 'text-white dark:text-white', activeBorder: 'border-amber-500 dark:border-amber-500' },
+  { value: 'Excluded', label: 'Excluded', dotColor: 'bg-red-500', activeBg: 'bg-red-500 dark:bg-red-500', activeText: 'text-white dark:text-white', activeBorder: 'border-red-500 dark:border-red-500' },
+];
+
+const getStatusBadgeClasses = (status: string) => {
+  switch (status) {
+    case 'Awaiting Payment':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+    case 'Partially Processed':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
+    case 'Processed':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+    case 'Hold':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+    case 'Excluded':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  }
+};
+
+const getStatusShortLabel = (status: string) => {
+  switch (status) {
+    case 'Awaiting Payment': return 'Awaiting';
+    case 'Partially Processed': return 'Partial';
+    default: return status;
+  }
+};
+
 const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [sortConfig, setSortConfig] = useState<{ key: keyof SkuData; direction: 'asc' | 'desc' } | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('All');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof SkuDataWithId; direction: 'asc' | 'desc' } | null>(null);
 
   const categories = ['All', ...Object.values(SkuCategory)];
 
-  const handleSort = (key: keyof SkuData) => {
+  // Count items per status for the pills
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: data.length };
+    STATUS_FILTERS.forEach(s => {
+      if (s.value !== 'All') {
+        counts[s.value] = data.filter(item => item.status === s.value).length;
+      }
+    });
+    return counts;
+  }, [data]);
+
+  const handleSort = (key: keyof SkuDataWithId) => {
     let direction: 'asc' | 'desc' = 'asc';
-    
-    // Toggle direction if already selected
     if (sortConfig && sortConfig.key === key) {
       direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
     } else if (key === 'investment' || key === 'profit' || key === 'turnover') {
-       // Default to descending for numbers (seeing highest first is better)
        direction = 'desc'; 
     }
-    
     setSortConfig({ key, direction });
   };
 
   const filteredData = useMemo(() => {
     let processed = data;
 
+    // Status filter
+    if (selectedStatus !== 'All') {
+      processed = processed.filter(item => item.status === selectedStatus);
+    }
+
+    // Category filter
     if (selectedCategory !== 'All') {
       processed = processed.filter(item => item.category === selectedCategory);
     }
 
+    // Search
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       processed = processed.filter(item => 
         item.sku.toLowerCase().includes(lowerTerm) || 
-        item.account.toLowerCase().includes(lowerTerm)
+        item.account.toLowerCase().includes(lowerTerm) ||
+        (item.asin && item.asin.toLowerCase().includes(lowerTerm))
       );
     }
 
+    // Sort
     if (sortConfig) {
       processed = [...processed].sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        const aVal = a[sortConfig.key];
+        const bVal = b[sortConfig.key];
+        if (aVal === undefined || bVal === undefined) return 0;
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
 
     return processed;
-  }, [data, searchTerm, selectedCategory, sortConfig]);
+  }, [data, searchTerm, selectedCategory, selectedStatus, sortConfig]);
 
-  const SortIcon = ({ column }: { column: keyof SkuData }) => {
-    if (sortConfig?.key !== column) return <span className="ml-1 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-50">↕</span>;
+  const SortIcon = ({ column }: { column: keyof SkuDataWithId }) => {
+    if (sortConfig?.key !== column) return <span className="ml-1 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-50">{'↕'}</span>;
     return <span className="ml-1 text-brand-600 dark:text-brand-400">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  const SortButton = ({ label, column }: { label: string, column: keyof SkuData }) => {
+  const SortButton = ({ label, column }: { label: string, column: keyof SkuDataWithId }) => {
     const isActive = sortConfig?.key === column;
     const isAsc = sortConfig?.direction === 'asc';
 
@@ -125,8 +177,35 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
               </div>
             </div>
           </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex items-center gap-1.5 sm:gap-2 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto pb-1 scrollbar-hide">
+            {STATUS_FILTERS.map(sf => {
+              const isActive = selectedStatus === sf.value;
+              const count = statusCounts[sf.value] || 0;
+              // Hide pills with 0 count (except All)
+              if (sf.value !== 'All' && count === 0) return null;
+              return (
+                <button
+                  key={sf.value}
+                  onClick={() => setSelectedStatus(sf.value)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-medium border transition-all duration-200 whitespace-nowrap flex-shrink-0
+                    ${isActive
+                      ? `${sf.activeBg} ${sf.activeText} ${sf.activeBorder}`
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-750'
+                    }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-current opacity-60' : sf.dotColor}`} />
+                  {sf.label}
+                  <span className={`text-[10px] sm:text-[11px] tabular-nums ${isActive ? 'opacity-75' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           
-          {/* Sort Buttons - Horizontal scroll on mobile */}
+          {/* Sort Buttons */}
           <div className="flex items-center gap-2 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto pb-1 scrollbar-hide">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">Sort:</span>
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -145,6 +224,9 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
             <tr>
               <th scope="col" className="px-6 py-3 cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('sku')}>
                 SKU <SortIcon column="sku" />
+              </th>
+              <th scope="col" className="px-6 py-3">
+                ASIN
               </th>
               <th scope="col" className="px-6 py-3 cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('account')}>
                 Account <SortIcon column="account" />
@@ -175,6 +257,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                   onClick={() => onRowClick?.(item)}
                 >
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.sku}</td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{item.asin || '-'}</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{item.account}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -191,12 +274,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                     ${item.profit.toLocaleString()}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${item.status === 'Awaiting Payment' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                        item.status === 'Partially Processed' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                        item.status === 'Processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                        item.status === 'Excluded' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClasses(item.status)}`}>
                       {item.status}
                     </span>
                   </td>
@@ -204,7 +282,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                   No SKUs found matching your criteria.
                 </td>
               </tr>
@@ -227,14 +305,8 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
                   <div className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">{item.sku}</div>
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{item.account}</div>
                 </div>
-                <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap flex-shrink-0
-                  ${item.status === 'Awaiting Payment' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    item.status === 'Partially Processed' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                    item.status === 'Processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                    item.status === 'Excluded' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
-                  {item.status === 'Awaiting Payment' ? 'Awaiting' : 
-                   item.status === 'Partially Processed' ? 'Partial' : item.status}
+                <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap flex-shrink-0 ${getStatusBadgeClasses(item.status)}`}>
+                  {getStatusShortLabel(item.status)}
                 </span>
               </div>
               
@@ -274,7 +346,7 @@ const SkuTable: React.FC<SkuTableProps> = ({ data, onRowClick }) => {
       </div>
 
       <div className="bg-gray-50 dark:bg-gray-750 px-3 sm:px-6 py-2 sm:py-3 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 transition-colors duration-200">
-        Showing {filteredData.length} {filteredData.length === 1 ? 'entry' : 'entries'}
+        Showing {filteredData.length} of {data.length} {data.length === 1 ? 'entry' : 'entries'}
       </div>
     </div>
   );

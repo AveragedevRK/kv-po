@@ -33,14 +33,17 @@ export interface PurchaseOrder {
 }
 
 // Item status types - Default is 'Awaiting Payment', can be changed to any of the others
-export type ItemStatus = 'Awaiting Payment' | 'Partially Processed' | 'Processed' | 'Excluded';
+export type ItemStatus = 'Awaiting Payment' | 'Partially Processed' | 'Processed' | 'Excluded' | 'Hold';
 
 export interface SkuDataWithId extends SkuData {
   id: string;
   units: number;
-  asin?: string; // ASIN - only visible to ADMIN, not editable
+  asin?: string;
   invoices?: string[];
   orders: OrderEntry[]; // Multiple orders per item
+  comments?: string;
+  rejectionReason?: string;
+  holdReason?: string;
 }
 
 // Order entry for items (multiple orders per item)
@@ -53,9 +56,6 @@ export interface OrderEntry {
   units: number;
   orderDate: string; // Format: "MM/DD/YYYY"
 }
-
-// Access mode types
-export type AccessMode = 'VIEW' | 'EDIT' | 'ADMIN';
 
 export interface AccountStat {
   name: string;

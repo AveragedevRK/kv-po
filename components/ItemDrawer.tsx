@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Save, Truck, Pencil, Plus, Trash2, Check, XCircle } from 'lucide-react';
+import { X, Package, DollarSign, TrendingUp, Clock, Layers, Tag, Loader2, FileText, Truck, Pencil, Plus, Trash2, Check, XCircle, MessageSquare, ShieldAlert, PauseCircle, Save, ChevronDown } from 'lucide-react';
 import { SkuDataWithId, SkuCategory, ItemStatus, OrderEntry } from '../types';
-import { updateItemStatus, updateItemOrders } from '../lib/loadPurchaseOrder';
+import { updateItemStatus, updateItemOrders, updateItemFields, forceUpdateItemStatus } from '../lib/loadPurchaseOrder';
 import InvoiceSection from './InvoiceSection';
-import { useAccess } from '../context/AccessContext';
 
 interface ItemDrawerProps {
   item: SkuDataWithId | null;
@@ -24,9 +23,6 @@ interface OrderCardProps {
   onSaveEdit: () => void;
   onDelete: () => void;
   onFieldChange: (field: keyof OrderEntry, value: string | number) => void;
-  canEditAdminFields: boolean;
-  canEditNumericFields: boolean;
-  canSave: boolean;
   isSaving: boolean;
 }
 
@@ -64,9 +60,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
   onSaveEdit,
   onDelete,
   onFieldChange,
-  canEditAdminFields,
-  canEditNumericFields,
-  canSave,
   isSaving,
 }) => {
   const displayOrder = isEditing && editingOrder ? editingOrder : order;
@@ -103,24 +96,20 @@ const OrderCard: React.FC<OrderCardProps> = ({
             </>
           ) : (
             <>
-              {(canEditAdminFields || canEditNumericFields) && (
-                <button
-                  onClick={onStartEdit}
-                  className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-brand-100 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                  title="Edit order"
-                >
-                  <Pencil size={12} />
-                </button>
-              )}
-              {canSave && (
-                <button
-                  onClick={onDelete}
-                  className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                  title="Delete order"
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
+              <button
+                onClick={onStartEdit}
+                className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-brand-100 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                title="Edit order"
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1 sm:p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Delete order"
+              >
+                <Trash2 size={12} />
+              </button>
             </>
           )}
         </div>
@@ -131,7 +120,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
         {/* Order Date */}
         <div className="flex items-center gap-2">
           <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Date</span>
-          {isEditing && canEditNumericFields ? (
+          {isEditing ? (
             <div className="flex items-center gap-2 flex-1">
               <div className="flex items-center">
                 <input
@@ -191,48 +180,44 @@ const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
 
-        {/* Order ID - ADMIN only */}
-        {canEditAdminFields && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Order ID</span>
-            {isEditing ? (
-              <input
-                type="text"
-                value={displayOrder.orderId}
-                onChange={(e) => onFieldChange('orderId', e.target.value)}
-                className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            ) : (
-              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.orderId || '-'}</span>
-            )}
-          </div>
-        )}
+        {/* Order ID */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Order ID</span>
+          {isEditing ? (
+            <input
+              type="text"
+              value={displayOrder.orderId}
+              onChange={(e) => onFieldChange('orderId', e.target.value)}
+              className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          ) : (
+            <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.orderId || '-'}</span>
+          )}
+        </div>
 
-        {/* Supplier - ADMIN only */}
-        {canEditAdminFields && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0 flex items-center gap-1">
-              <Truck size={10} /> Supplier
-            </span>
-            {isEditing ? (
-              <input
-                type="text"
-                value={displayOrder.supplier}
-                onChange={(e) => onFieldChange('supplier', e.target.value)}
-                className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            ) : (
-              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.supplier || '-'}</span>
-            )}
-          </div>
-        )}
+        {/* Supplier */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0 flex items-center gap-1">
+            <Truck size={10} /> Supplier
+          </span>
+          {isEditing ? (
+            <input
+              type="text"
+              value={displayOrder.supplier}
+              onChange={(e) => onFieldChange('supplier', e.target.value)}
+              className="flex-1 px-2 py-1 text-xs sm:text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          ) : (
+            <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{displayOrder.supplier || '-'}</span>
+          )}
+        </div>
 
         {/* Numeric Fields Grid */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           {/* Subtotal */}
           <div>
             <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Subtotal</span>
-            {isEditing && canEditNumericFields ? (
+            {isEditing ? (
               <input
                 type="number"
                 value={displayOrder.subtotal}
@@ -247,7 +232,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
           {/* Misc */}
           <div>
             <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Misc</span>
-            {isEditing && canEditNumericFields ? (
+            {isEditing ? (
               <input
                 type="number"
                 value={displayOrder.misc}
@@ -262,7 +247,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
           {/* Total */}
           <div>
             <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Total</span>
-            {isEditing && canEditNumericFields ? (
+            {isEditing ? (
               <input
                 type="number"
                 value={displayOrder.total}
@@ -277,7 +262,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
           {/* Units */}
           <div>
             <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 block mb-0.5">Units</span>
-            {isEditing && canEditNumericFields ? (
+            {isEditing ? (
               <input
                 type="number"
                 value={displayOrder.units}
@@ -290,13 +275,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Edit Mode Warning for non-ADMIN */}
-      {isEditing && canEditNumericFields && !canSave && (
-        <p className="mt-2 text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 italic">
-          Changes in EDIT mode are not saved.
-        </p>
-      )}
     </div>
   );
 };
@@ -305,23 +283,63 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   const drawerRef = useRef<HTMLDivElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingOrders, setIsSavingOrders] = useState(false);
-  const { accessMode, canEditAdminFields, canEditNumericFields, canSave, canViewSupplier, canViewInvoices } = useAccess();
   
   // Local state for orders editing
   const [localOrders, setLocalOrders] = useState<OrderEntry[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderEntry | null>(null);
   
-  // Reset local orders when item changes
+  // Local status tracking for immediate UI updates
+  const [localStatus, setLocalStatus] = useState<string>('');
+  const [showStatusOverride, setShowStatusOverride] = useState(false);
+  const statusOverrideRef = useRef<HTMLDivElement>(null);
+  
+  // Comments, rejection reason, and hold reason state
+  const [localComments, setLocalComments] = useState('');
+  const [localRejectionReason, setLocalRejectionReason] = useState('');
+  const [localHoldReason, setLocalHoldReason] = useState('');
+  const [isSavingComments, setIsSavingComments] = useState(false);
+  const [isSavingRejection, setIsSavingRejection] = useState(false);
+  const [isSavingHold, setIsSavingHold] = useState(false);
+  const [commentsSaved, setCommentsSaved] = useState(false);
+  const [rejectionSaved, setRejectionSaved] = useState(false);
+  const [holdSaved, setHoldSaved] = useState(false);
+  
+  // Reset local state when item changes
   useEffect(() => {
     if (item) {
       setLocalOrders([...item.orders]);
+      setLocalStatus(item.status);
+      setLocalComments(item.comments || '');
+      setLocalRejectionReason(item.rejectionReason || '');
+      setLocalHoldReason(item.holdReason || '');
     } else {
       setLocalOrders([]);
+      setLocalStatus('');
+      setLocalComments('');
+      setLocalRejectionReason('');
+      setLocalHoldReason('');
     }
     setEditingIndex(null);
     setEditingOrder(null);
+    setCommentsSaved(false);
+    setRejectionSaved(false);
+    setHoldSaved(false);
+    setShowStatusOverride(false);
   }, [item]);
+
+  // Close status override dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (statusOverrideRef.current && !statusOverrideRef.current.contains(e.target as Node)) {
+        setShowStatusOverride(false);
+      }
+    };
+    if (showStatusOverride) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showStatusOverride]);
 
   // Close on outside click
   useEffect(() => {
@@ -365,17 +383,44 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   }, [isOpen, onClose, editingIndex]);
 
   const handleStatusChange = async (newStatus: ItemStatus) => {
-    if (!item || item.status !== 'Awaiting Payment') return;
-    if (!canSave) return;
+    if (!item || localStatus !== 'Awaiting Payment') return;
     
+    // Update local status immediately so UI reflects the change
+    setLocalStatus(newStatus);
     setIsUpdating(true);
     try {
       const success = await updateItemStatus(poId, item.id, item.status as ItemStatus, newStatus);
       if (success) {
         onItemUpdated();
+      } else {
+        // Revert on failure
+        setLocalStatus(item.status);
       }
     } catch (error) {
       console.error('Error updating item status:', error);
+      setLocalStatus(item.status);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleForceStatusChange = async (newStatus: ItemStatus) => {
+    if (!item || newStatus === localStatus) return;
+    
+    const previousStatus = localStatus;
+    setLocalStatus(newStatus);
+    setShowStatusOverride(false);
+    setIsUpdating(true);
+    try {
+      const success = await forceUpdateItemStatus(poId, item.id, newStatus);
+      if (success) {
+        onItemUpdated();
+      } else {
+        setLocalStatus(previousStatus);
+      }
+    } catch (error) {
+      console.error('Error force updating status:', error);
+      setLocalStatus(previousStatus);
     } finally {
       setIsUpdating(false);
     }
@@ -405,22 +450,17 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     const newOrders = [...localOrders];
     newOrders[editingIndex] = editingOrder;
     
-    if (canSave) {
-      setIsSavingOrders(true);
-      try {
-        const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
-        if (success) {
-          setLocalOrders(newOrders);
-          onItemUpdated();
-        }
-      } catch (error) {
-        console.error('Error saving order:', error);
-      } finally {
-        setIsSavingOrders(false);
+    setIsSavingOrders(true);
+    try {
+      const success = await updateItemOrders(poId, item.id, newOrders);
+      if (success) {
+        setLocalOrders(newOrders);
+        onItemUpdated();
       }
-    } else {
-      // EDIT mode: only update local state
-      setLocalOrders(newOrders);
+    } catch (error) {
+      console.error('Error saving order:', error);
+    } finally {
+      setIsSavingOrders(false);
     }
     
     setEditingIndex(null);
@@ -428,13 +468,13 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   };
 
   const handleDeleteOrder = async (index: number) => {
-    if (!item || !canSave) return;
+    if (!item) return;
     
     const newOrders = localOrders.filter((_, i) => i !== index);
     
     setIsSavingOrders(true);
     try {
-      const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
+      const success = await updateItemOrders(poId, item.id, newOrders);
       if (success) {
         setLocalOrders(newOrders);
         onItemUpdated();
@@ -456,7 +496,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
   };
 
   const handleAddOrder = async () => {
-    if (!item || !canSave) return;
+    if (!item) return;
     
     const newOrder: OrderEntry = {
       orderId: '',
@@ -472,7 +512,7 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
     
     setIsSavingOrders(true);
     try {
-      const success = await updateItemOrders(poId, item.id, newOrders, accessMode);
+      const success = await updateItemOrders(poId, item.id, newOrders);
       if (success) {
         setLocalOrders(newOrders);
         onItemUpdated();
@@ -484,6 +524,57 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
       console.error('Error adding order:', error);
     } finally {
       setIsSavingOrders(false);
+    }
+  };
+
+  const handleSaveComments = async () => {
+    if (!item) return;
+    setIsSavingComments(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { comments: localComments });
+      if (success) {
+        setCommentsSaved(true);
+        setTimeout(() => setCommentsSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving comments:', error);
+    } finally {
+      setIsSavingComments(false);
+    }
+  };
+
+  const handleSaveRejectionReason = async () => {
+    if (!item) return;
+    setIsSavingRejection(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { rejectionReason: localRejectionReason });
+      if (success) {
+        setRejectionSaved(true);
+        setTimeout(() => setRejectionSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving rejection reason:', error);
+    } finally {
+      setIsSavingRejection(false);
+    }
+  };
+
+  const handleSaveHoldReason = async () => {
+    if (!item) return;
+    setIsSavingHold(true);
+    try {
+      const success = await updateItemFields(poId, item.id, { holdReason: localHoldReason });
+      if (success) {
+        setHoldSaved(true);
+        setTimeout(() => setHoldSaved(false), 2000);
+        onItemUpdated();
+      }
+    } catch (error) {
+      console.error('Error saving hold reason:', error);
+    } finally {
+      setIsSavingHold(false);
     }
   };
 
@@ -523,6 +614,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Excluded':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'Hold':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
@@ -562,8 +655,8 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
           <div className="mb-4 sm:mb-6">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 break-all">{item.sku}</h3>
             
-            {/* ASIN - Only visible to ADMIN, not editable */}
-            {canSave && item.asin && (
+            {/* ASIN - Always visible */}
+            {item.asin && (
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 font-mono">
                 ASIN: {item.asin}
               </p>
@@ -573,9 +666,42 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
               <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getCategoryColor(item.category)}`}>
                 {getCategoryLabel(item.category)}
               </span>
-              <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(item.status)}`}>
-                {item.status}
-              </span>
+              <div className="relative" ref={statusOverrideRef}>
+                <button
+                  onClick={() => setShowStatusOverride(!showStatusOverride)}
+                  className={`inline-flex items-center gap-0.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium cursor-pointer transition-all duration-150 ${getStatusColor(localStatus)} hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600`}
+                >
+                  {localStatus}
+                  <ChevronDown size={10} className={`opacity-40 transition-transform duration-150 ${showStatusOverride ? 'rotate-180' : ''}`} />
+                </button>
+                {showStatusOverride && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                    {(['Awaiting Payment', 'Partially Processed', 'Processed', 'Hold', 'Excluded'] as ItemStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => handleForceStatusChange(status)}
+                        disabled={status === localStatus || isUpdating}
+                        className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors
+                          ${status === localStatus
+                            ? 'opacity-40 cursor-default bg-gray-50 dark:bg-gray-750'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-300'
+                          }
+                          disabled:cursor-not-allowed`}
+                      >
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          status === 'Awaiting Payment' ? 'bg-yellow-400' :
+                          status === 'Partially Processed' ? 'bg-orange-400' :
+                          status === 'Processed' ? 'bg-green-400' :
+                          status === 'Hold' ? 'bg-amber-400' :
+                          'bg-red-400'
+                        }`} />
+                        {status}
+                        {status === localStatus && <Check size={10} className="ml-auto opacity-60" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -631,28 +757,24 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                 <FileText size={14} className="sm:w-4 sm:h-4" />
                 Orders ({localOrders.length})
               </h4>
-              {canSave && (
-                <button
-                  onClick={handleAddOrder}
-                  disabled={isSavingOrders}
-                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
-                    bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 
-                    dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSavingOrders ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : <Plus size={10} className="sm:w-3 sm:h-3" />}
-                  Add Order
-                </button>
-              )}
+              <button
+                onClick={handleAddOrder}
+                disabled={isSavingOrders}
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
+                  bg-brand-50 border border-brand-200 text-brand-700 hover:bg-brand-100 
+                  dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingOrders ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : <Plus size={10} className="sm:w-3 sm:h-3" />}
+                Add Order
+              </button>
             </div>
 
             {localOrders.length === 0 ? (
               <div className="text-center py-6 text-gray-400 dark:text-gray-500">
                 <FileText size={24} className="mx-auto mb-2 opacity-50" />
                 <p className="text-xs sm:text-sm">No orders yet</p>
-                {canSave && (
-                  <p className="text-[10px] sm:text-xs mt-1">Click "Add Order" to create one</p>
-                )}
+                <p className="text-[10px] sm:text-xs mt-1">Click "Add Order" to create one</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -668,9 +790,6 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
                     onSaveEdit={handleSaveEdit}
                     onDelete={() => handleDeleteOrder(index)}
                     onFieldChange={handleFieldChange}
-                    canEditAdminFields={canEditAdminFields}
-                    canEditNumericFields={canEditNumericFields}
-                    canSave={canSave}
                     isSaving={isSavingOrders}
                   />
                 ))}
@@ -678,61 +797,178 @@ const ItemDrawer: React.FC<ItemDrawerProps> = ({ item, isOpen, onClose, poId, on
             )}
           </div>
 
-          {/* Status Controls - Only ADMIN can change status */}
-          {canSave && (
-            <div className="mb-4 sm:mb-6">
-              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Update Status</h4>
-              {item.status === 'Awaiting Payment' ? (
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                  <button
-                    onClick={() => handleStatusChange('Partially Processed')}
-                    disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
-                      bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 
-                      dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/30
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Partial'}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('Processed')}
-                    disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
-                      bg-green-50 border-green-200 text-green-700 hover:bg-green-100 
-                      dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Done'}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('Excluded')}
-                    disabled={isUpdating}
-                    className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
-                      bg-red-50 border-red-200 text-red-700 hover:bg-red-100 
-                      dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Skip'}
-                  </button>
-                </div>
-              ) : (
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
-                  Status cannot be changed once set to {item.status}.
-                </p>
-              )}
+          {/* Status Controls */}
+          <div className="mb-4 sm:mb-6">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Update Status</h4>
+            {localStatus === 'Awaiting Payment' ? (
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => handleStatusChange('Partially Processed')}
+                  disabled={isUpdating}
+                  className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 
+                    dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Partial'}
+                </button>
+                <button
+                  onClick={() => handleStatusChange('Processed')}
+                  disabled={isUpdating}
+                  className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    bg-green-50 border-green-200 text-green-700 hover:bg-green-100 
+                    dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Done'}
+                </button>
+                <button
+                  onClick={() => handleStatusChange('Hold')}
+                  disabled={isUpdating}
+                  className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 
+                    dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Hold'}
+                </button>
+                <button
+                  onClick={() => handleStatusChange('Excluded')}
+                  disabled={isUpdating}
+                  className="inline-flex items-center justify-center px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    bg-red-50 border-red-200 text-red-700 hover:bg-red-100 
+                    dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" /> : 'Skip'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
+                Status cannot be changed once set to {localStatus}.
+              </p>
+            )}
+          </div>
+
+          {/* Rejection Reason - only shown when status is Excluded */}
+          {localStatus === 'Excluded' && (
+            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+              <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                <h4 className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5 sm:gap-2">
+                  <ShieldAlert size={14} className="sm:w-4 sm:h-4" />
+                  Rejection Reason
+                </h4>
+                <button
+                  onClick={handleSaveRejectionReason}
+                  disabled={isSavingRejection}
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    ${rejectionSaved
+                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                      : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isSavingRejection ? (
+                    <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                  ) : rejectionSaved ? (
+                    <Check size={10} className="sm:w-3 sm:h-3" />
+                  ) : (
+                    <Save size={10} className="sm:w-3 sm:h-3" />
+                  )}
+                  {rejectionSaved ? 'Saved' : 'Save'}
+                </button>
+              </div>
+              <textarea
+                value={localRejectionReason}
+                onChange={(e) => setLocalRejectionReason(e.target.value)}
+                placeholder="Enter reason for excluding this item..."
+                rows={2}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-400 dark:focus:ring-red-600 resize-none"
+              />
             </div>
           )}
 
-          {/* Invoice Section - Only ADMIN */}
-          {canViewInvoices && (
-            <InvoiceSection
-              itemId={item.id}
-              poId={poId}
-              invoices={item.invoices || []}
-              onInvoiceUploaded={onItemUpdated}
-              accessMode={accessMode}
-            />
+          {/* Hold Reason - only shown when status is Hold */}
+          {localStatus === 'Hold' && (
+            <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+              <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                <h4 className="text-xs sm:text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 sm:gap-2">
+                  <PauseCircle size={14} className="sm:w-4 sm:h-4" />
+                  Hold Reason
+                </h4>
+                <button
+                  onClick={handleSaveHoldReason}
+                  disabled={isSavingHold}
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                    ${holdSaved
+                      ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                      : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isSavingHold ? (
+                    <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                  ) : holdSaved ? (
+                    <Check size={10} className="sm:w-3 sm:h-3" />
+                  ) : (
+                    <Save size={10} className="sm:w-3 sm:h-3" />
+                  )}
+                  {holdSaved ? 'Saved' : 'Save'}
+                </button>
+              </div>
+              <textarea
+                value={localHoldReason}
+                onChange={(e) => setLocalHoldReason(e.target.value)}
+                placeholder="Enter reason for putting this item on hold..."
+                rows={2}
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:focus:ring-amber-600 resize-none"
+              />
+            </div>
           )}
+
+          {/* Invoice Section */}
+          <InvoiceSection
+            itemId={item.id}
+            poId={poId}
+            invoices={item.invoices || []}
+            onInvoiceUploaded={onItemUpdated}
+          />
+
+          {/* Comments Section - always visible */}
+          <div className="mb-4 sm:mb-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+            <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
+                <MessageSquare size={14} className="sm:w-4 sm:h-4" />
+                Comments
+              </h4>
+              <button
+                onClick={handleSaveComments}
+                disabled={isSavingComments}
+                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg border transition-all duration-200 active:scale-95
+                  ${commentsSaved
+                    ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                    : 'bg-brand-50 border-brand-200 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/30'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSavingComments ? (
+                  <Loader2 size={10} className="sm:w-3 sm:h-3 animate-spin" />
+                ) : commentsSaved ? (
+                  <Check size={10} className="sm:w-3 sm:h-3" />
+                ) : (
+                  <Save size={10} className="sm:w-3 sm:h-3" />
+                )}
+                {commentsSaved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+            <textarea
+              value={localComments}
+              onChange={(e) => setLocalComments(e.target.value)}
+              placeholder="Add comments about this item..."
+              rows={3}
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-400 dark:focus:ring-brand-600 resize-none"
+            />
+          </div>
         </div>
       </div>
     </>
